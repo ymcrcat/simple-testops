@@ -1,0 +1,439 @@
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { apiFetch } from "@/lib/api";
+import StatusBadge from "@/components/StatusBadge";
+import RunSummary from "@/components/RunSummary";
+
+interface Run {
+  id: number;
+  name: string;
+  started_at: string;
+  finished_at: string;
+  total: number;
+  passed: number;
+  failed: number;
+  skipped: number;
+}
+
+interface TestResult {
+  id: number;
+  name: string;
+  class_name: string;
+  status: string;
+  duration_ms: number;
+  error_message: string | null;
+  case_name: string | null;
+  feature_name: string | null;
+  story_name: string | null;
+}
+
+interface StoryGroup {
+  name: string;
+  results: TestResult[];
+}
+
+interface FeatureGroup {
+  name: string;
+  stories: StoryGroup[];
+}
+
+function groupByFeatureStory(results: TestResult[]): FeatureGroup[] {
+  const map = new Map<string, Map<string, TestResult[]>>();
+  for (const r of results) {
+    const feat = r.feature_name || "Ungrouped";
+    const story = r.story_name || "Ungrouped";
+    if (!map.has(feat)) map.set(feat, new Map());
+    const storyMap = map.get(feat)!;
+    if (!storyMap.has(story)) storyMap.set(story, []);
+    storyMap.get(story)!.push(r);
+  }
+  const groups: FeatureGroup[] = [];
+  for (const [featName, storyMap] of map) {
+    const stories: StoryGroup[] = [];
+    for (const [storyName, results] of storyMap) {
+      stories.push({ name: storyName, results });
+    }
+    groups.push({ name: featName, stories });
+  }
+  return groups;
+}
+
+function statusCounts(results: TestResult[]) {
+  let p = 0, f = 0, s = 0;
+  for (const r of results) {
+    if (r.status === "passed") p++;
+    else if (r.status === "failed" || r.status === "broken") f++;
+    else if (r.status === "skipped") s++;
+  }
+  return { p, f, s };
+}
+
+function CountBadges({ results }: { results: TestResult[] }) {
+  const { p, f, s } = statusCounts(results);
+  return (
+    <span className="mono" style={{ fontSize: 11, opacity: 0.7, marginLeft: 8 }}>
+      {p > 0 && <span style={{ color: "var(--color-passed)" }}>{p}p</span>}
+      {f > 0 && <>{p > 0 && " "}<span style={{ color: "var(--color-failed)" }}>{f}f</span></>}
+      {s > 0 && <>{(p > 0 || f > 0) && " "}<span style={{ color: "var(--color-skipped)" }}>{s}s</span></>}
+    </span>
+  );
+}
+
+function RunMenu({ run, onRename, onDelete }: { run: Run; onRename: (name: string) => void; onDelete: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [newName, setNewName] = useState(run.name || "");
+  const menuRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) { setOpen(false); }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  useEffect(() => {
+    if (renaming) inputRef.current?.focus();
+  }, [renaming]);
+
+  const handleRename = () => {
+    if (!newName.trim() || newName === run.name) { setRenaming(false); return; }
+    onRename(newName);
+    setRenaming(false);
+    setOpen(false);
+  };
+
+  const handleDelete = () => {
+    onDelete();
+    setOpen(false);
+  };
+
+  return (
+    <div ref={menuRef} style={{ position: "relative" }}>
+      <button
+        onClick={() => setOpen(!open)}
+        style={{
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          padding: "4px 6px",
+          borderRadius: "var(--radius-sm)",
+          color: "var(--text-muted)",
+          display: "flex",
+          alignItems: "center",
+          transition: "all 0.15s",
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-elevated)"; e.currentTarget.style.color = "var(--text-secondary)"; }}
+        onMouseLeave={(e) => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = "var(--text-muted)"; }}
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          <circle cx="12" cy="5" r="2" />
+          <circle cx="12" cy="12" r="2" />
+          <circle cx="12" cy="19" r="2" />
+        </svg>
+      </button>
+
+      {open && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute",
+            right: 0,
+            top: "100%",
+            marginTop: 4,
+            width: 200,
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border-active)",
+            borderRadius: "var(--radius-md)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+            zIndex: 50,
+            overflow: "hidden",
+            animation: "fadeIn 0.15s ease-out",
+          }}
+        >
+          {renaming ? (
+            <div style={{ padding: 10 }}>
+              <input
+                ref={inputRef}
+                className="input"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleRename();
+                  if (e.key === "Escape") { setRenaming(false); setNewName(run.name || ""); }
+                }}
+                style={{ fontSize: 13, padding: "6px 10px", marginBottom: 6 }}
+              />
+              <div style={{ display: "flex", gap: 6, justifyContent: "flex-end" }}>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => { setRenaming(false); setNewName(run.name || ""); }}
+                  style={{ fontSize: 12, padding: "4px 10px" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleRename}
+                  style={{ fontSize: 12, padding: "4px 10px" }}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <button
+                onClick={() => setRenaming(true)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  width: "100%",
+                  padding: "10px 14px",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--text-secondary)",
+                  fontSize: 13,
+                  fontFamily: "var(--font-body)",
+                  transition: "all 0.1s",
+                  textAlign: "left",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; e.currentTarget.style.color = "var(--text-primary)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = "var(--text-secondary)"; }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7" />
+                  <path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z" />
+                </svg>
+                Rename
+              </button>
+              <div style={{ height: 1, background: "var(--border)" }} />
+              <button
+                onClick={handleDelete}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  width: "100%",
+                  padding: "10px 14px",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  color: "var(--color-failed)",
+                  fontSize: 13,
+                  fontFamily: "var(--font-body)",
+                  transition: "all 0.1s",
+                  textAlign: "left",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--color-failed-glow)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                </svg>
+                Delete
+              </button>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function RunDetailPage() {
+  const params = useParams();
+  const router = useRouter();
+  const [run, setRun] = useState<Run | null>(null);
+  const [results, setResults] = useState<TestResult[]>([]);
+  const [filter, setFilter] = useState<string>("");
+
+  useEffect(() => {
+    apiFetch<Run>(`/runs/${params.runId}`).then(setRun);
+    apiFetch<TestResult[]>(`/runs/${params.runId}/results`).then(setResults);
+  }, [params.runId]);
+
+  const handleRename = async (name: string) => {
+    const updated = await apiFetch<Run>(`/runs/${params.runId}`, {
+      method: "PUT",
+      body: JSON.stringify({ name }),
+    });
+    setRun(updated);
+  };
+
+  const handleDelete = async () => {
+    await apiFetch(`/runs/${params.runId}`, { method: "DELETE" });
+    router.push(`/projects/${params.id}/runs`);
+  };
+
+  if (!run) return <div className="page-loader">Loading run data...</div>;
+
+  const filtered = filter ? results.filter((r) => r.status === filter) : results;
+  const groups = groupByFeatureStory(filtered);
+  const errors = filtered.filter((r) => r.error_message);
+
+  const filterButtons = [
+    { value: "", label: "All", count: results.length },
+    { value: "passed", label: "Passed", count: results.filter((r) => r.status === "passed").length },
+    { value: "failed", label: "Failed", count: results.filter((r) => r.status === "failed").length },
+    { value: "skipped", label: "Skipped", count: results.filter((r) => r.status === "skipped").length },
+    { value: "broken", label: "Broken", count: results.filter((r) => r.status === "broken").length },
+  ];
+
+  return (
+    <div>
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+          <h1 style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 24,
+            fontWeight: 800,
+            letterSpacing: "-0.03em",
+            marginBottom: 6,
+          }}>
+            {run.name || `Run #${run.id}`}
+          </h1>
+          <RunMenu run={run} onRename={handleRename} onDelete={handleDelete} />
+        </div>
+        <div className="mono" style={{ color: "var(--text-muted)", fontSize: 12, display: "flex", gap: 16 }}>
+          <span>Started {run.started_at}</span>
+          <span style={{ color: "var(--border-active)" }}>|</span>
+          <span>Finished {run.finished_at}</span>
+        </div>
+      </div>
+
+      {/* Summary */}
+      <div className="card-static animate-in" style={{ padding: "20px 24px", marginBottom: 28 }}>
+        <RunSummary total={run.total} passed={run.passed} failed={run.failed} skipped={run.skipped} size="lg" />
+      </div>
+
+      {/* Filter */}
+      <div className="animate-in stagger-1" style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+        {filterButtons.map((f) => (
+          <button
+            key={f.value}
+            onClick={() => setFilter(f.value)}
+            className={`btn btn-ghost ${filter === f.value ? "active" : ""}`}
+            style={{ fontSize: 12 }}
+          >
+            {f.label}
+            <span style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 10,
+              opacity: 0.6,
+              marginLeft: 2,
+            }}>
+              {f.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Results grouped by Feature → Story */}
+      <div className="animate-in stagger-2" style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 28 }}>
+        {groups.map((feat) => {
+          const allFeatResults = feat.stories.flatMap((s) => s.results);
+          return (
+            <details key={feat.name} open>
+              <summary style={{
+                cursor: "pointer",
+                fontFamily: "var(--font-display)",
+                fontWeight: 700,
+                fontSize: 14,
+                letterSpacing: "-0.02em",
+                padding: "8px 0",
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+              }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
+                </svg>
+                {feat.name}
+                <CountBadges results={allFeatResults} />
+              </summary>
+              <div style={{ paddingLeft: 16, display: "flex", flexDirection: "column", gap: 8 }}>
+                {feat.stories.map((story) => (
+                  <details key={story.name} open>
+                    <summary style={{
+                      cursor: "pointer",
+                      fontWeight: 500,
+                      fontSize: 13,
+                      color: "var(--text-secondary)",
+                      padding: "4px 0",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}>
+                      {story.name}
+                      <CountBadges results={story.results} />
+                    </summary>
+                    <div className="card-static" style={{ overflow: "hidden", marginTop: 4, marginBottom: 4 }}>
+                      <table className="data-table">
+                        <tbody>
+                          {story.results.map((r) => (
+                            <tr key={r.id} className="status-row" data-status={r.status}>
+                              <td style={{ padding: 0, width: 4 }}></td>
+                              <td style={{ fontWeight: 500, fontSize: 13 }}>{r.name}</td>
+                              <td><StatusBadge status={r.status} /></td>
+                              <td className="mono" style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+                                {r.duration_ms}<span style={{ color: "var(--text-muted)" }}>ms</span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </details>
+                ))}
+              </div>
+            </details>
+          );
+        })}
+        {filtered.length === 0 && (
+          <div style={{ padding: 32, textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
+            No results match this filter.
+          </div>
+        )}
+      </div>
+
+      {/* Errors */}
+      {errors.length > 0 && (
+        <div className="animate-in stagger-3">
+          <div className="section-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--color-failed)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            Errors ({errors.length})
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {errors.map((r) => (
+              <div key={r.id} className="error-block">
+                <div style={{
+                  fontFamily: "var(--font-body)",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  color: "var(--text-primary)",
+                  marginBottom: 6,
+                }}>
+                  {r.name}
+                </div>
+                <pre>{r.error_message}</pre>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

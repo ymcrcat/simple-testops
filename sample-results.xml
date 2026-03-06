@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuite name="pytest" tests="7" errors="0" failures="2" skipped="1" time="1.234">
+  <testcase classname="tests.test_auth.TestLogin" name="test_login_valid_credentials" time="0.123">
+    <properties>
+      <property name="feature" value="Authentication"/>
+      <property name="story" value="Login"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_auth.TestLogin" name="test_login_invalid_password" time="0.089">
+    <properties>
+      <property name="feature" value="Authentication"/>
+      <property name="story" value="Login"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_auth.TestLogin" name="test_login_empty_fields" time="0.045">
+    <properties>
+      <property name="feature" value="Authentication"/>
+      <property name="story" value="Login"/>
+    </properties>
+    <failure message="AssertionError: Expected validation error">
+      AssertionError: Expected validation error
+      assert response.status_code == 400
+    </failure>
+  </testcase>
+  <testcase classname="tests.test_auth.TestRegister" name="test_register_new_user" time="0.234">
+    <properties>
+      <property name="feature" value="Authentication"/>
+      <property name="story" value="Registration"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_auth.TestRegister" name="test_register_duplicate_email" time="0.156">
+    <properties>
+      <property name="feature" value="Authentication"/>
+      <property name="story" value="Registration"/>
+    </properties>
+    <failure message="Expected 409 conflict">
+      Expected 409 conflict, got 500
+    </failure>
+  </testcase>
+  <testcase classname="tests.test_dashboard.TestDashboard" name="test_dashboard_loads" time="0.312">
+    <properties>
+      <property name="feature" value="Dashboard"/>
+      <property name="story" value="Dashboard Loading"/>
+    </properties>
+  </testcase>
+  <testcase classname="tests.test_dashboard.TestDashboard" name="test_widget_count" time="0.078">
+    <properties>
+      <property name="feature" value="Dashboard"/>
+      <property name="story" value="Widgets"/>
+    </properties>
+    <skipped message="Not implemented yet"/>
+  </testcase>
+</testsuite>
