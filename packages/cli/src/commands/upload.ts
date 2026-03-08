@@ -1,11 +1,9 @@
 import { Command } from "commander";
-import { loadConfig } from "../config";
 import { readJUnitFile, findJUnitFiles } from "../junit-reader";
 import http from "http";
 import https from "https";
-import url from "url";
 
-function post(serverUrl: string, apiKey: string, body: object): Promise<any> {
+function post(serverUrl: string, body: object): Promise<any> {
   return new Promise((resolve, reject) => {
     const parsed = new URL(serverUrl + "/api/runs/upload");
     const transport = parsed.protocol === "https:" ? https : http;
@@ -20,7 +18,6 @@ function post(serverUrl: string, apiKey: string, body: object): Promise<any> {
         headers: {
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(payload),
-          "X-API-Key": apiKey,
         },
       },
       (res) => {
@@ -47,17 +44,9 @@ export const uploadCommand = new Command("upload")
   .option("--file <path>", "Path to JUnit XML file")
   .option("--dir <path>", "Directory containing JUnit XML files")
   .option("--name <name>", "Run name")
-  .option("--url <url>", "Server URL (overrides config)")
-  .option("--key <key>", "API key (overrides config)")
+  .requiredOption("--url <url>", "Server URL")
   .action(async (opts) => {
-    const config = loadConfig();
-    const serverUrl = opts.url || config?.url;
-    const apiKey = opts.key || config?.key;
-
-    if (!serverUrl) {
-      console.error("Error: No server URL. Run 'testops login' first or pass --url");
-      process.exit(1);
-    }
+    const serverUrl = opts.url;
 
     const files: string[] = [];
     if (opts.file) files.push(opts.file);
@@ -72,7 +61,7 @@ export const uploadCommand = new Command("upload")
       console.log(`Uploading ${file}...`);
       const xml = readJUnitFile(file);
       try {
-        const result = await post(serverUrl, apiKey || "", {
+        const result = await post(serverUrl, {
           project_id: opts.project,
           xml,
           name: opts.name,

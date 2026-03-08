@@ -29,7 +29,6 @@ describe("CLI", () => {
     const { stdout } = runCli(["--help"]);
     expect(stdout).toContain("TestOps CLI");
     expect(stdout).toContain("upload");
-    expect(stdout).toContain("login");
   });
 
   it("shows version with --version", () => {
@@ -42,22 +41,18 @@ describe("CLI", () => {
     expect(stdout).toContain("--project");
     expect(stdout).toContain("--file");
     expect(stdout).toContain("--dir");
-  });
-
-  it("shows login subcommand help", () => {
-    const { stdout } = runCli(["login", "--help"]);
     expect(stdout).toContain("--url");
-    expect(stdout).toContain("--key");
   });
 
   it("upload fails without required --project option", () => {
-    const { stderr, exitCode } = runCli(["upload", "--file", "test.xml"]);
+    const { stderr, exitCode } = runCli(["upload", "--file", "test.xml", "--url", "http://localhost"]);
     expect(exitCode).not.toBe(0);
     expect(stderr).toContain("project");
   });
 
-  it("login fails without required options", () => {
-    const { exitCode } = runCli(["login"]);
+  it("upload fails without required --url option", () => {
+    const { stderr, exitCode } = runCli(["upload", "--project", "test", "--file", "test.xml"]);
     expect(exitCode).not.toBe(0);
+    expect(stderr).toContain("url");
   });
 });

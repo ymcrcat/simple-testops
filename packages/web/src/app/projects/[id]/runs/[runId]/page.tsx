@@ -25,12 +25,23 @@ interface TestResult {
   duration_ms: number;
   error_message: string | null;
   case_name: string | null;
+  test_case_id: number | null;
   feature_name: string | null;
   story_name: string | null;
+  story_priority: string | null;
+}
+
+interface TestCaseDetail {
+  id: number;
+  name: string;
+  class_name: string | null;
+  description: string | null;
+  status: string;
 }
 
 interface StoryGroup {
   name: string;
+  priority: string | null;
   results: TestResult[];
 }
 
@@ -40,24 +51,50 @@ interface FeatureGroup {
 }
 
 function groupByFeatureStory(results: TestResult[]): FeatureGroup[] {
-  const map = new Map<string, Map<string, TestResult[]>>();
+  const map = new Map<string, Map<string, { priority: string | null; results: TestResult[] }>>();
   for (const r of results) {
     const feat = r.feature_name || "Ungrouped";
     const story = r.story_name || "Ungrouped";
     if (!map.has(feat)) map.set(feat, new Map());
     const storyMap = map.get(feat)!;
-    if (!storyMap.has(story)) storyMap.set(story, []);
-    storyMap.get(story)!.push(r);
+    if (!storyMap.has(story)) storyMap.set(story, { priority: r.story_priority, results: [] });
+    storyMap.get(story)!.results.push(r);
   }
   const groups: FeatureGroup[] = [];
   for (const [featName, storyMap] of map) {
     const stories: StoryGroup[] = [];
-    for (const [storyName, results] of storyMap) {
-      stories.push({ name: storyName, results });
+    for (const [storyName, data] of storyMap) {
+      stories.push({ name: storyName, priority: data.priority, results: data.results });
     }
     groups.push({ name: featName, stories });
   }
   return groups;
+}
+
+const priorityColors: Record<string, { bg: string; text: string }> = {
+  P0: { bg: "var(--color-failed-glow)", text: "var(--color-failed)" },
+  P1: { bg: "var(--color-skipped-glow)", text: "var(--color-skipped)" },
+  P2: { bg: "var(--bg-elevated)", text: "var(--text-muted)" },
+};
+
+function PriorityTag({ priority }: { priority: string | null }) {
+  if (!priority || !priorityColors[priority]) return null;
+  const c = priorityColors[priority];
+  return (
+    <span style={{
+      fontFamily: "var(--font-mono)",
+      fontSize: 10,
+      padding: "2px 6px",
+      borderRadius: 4,
+      background: c.bg,
+      color: c.text,
+      fontWeight: 600,
+      lineHeight: 1.2,
+      marginLeft: 6,
+    }}>
+      {priority}
+    </span>
+  );
 }
 
 function statusCounts(results: TestResult[]) {
@@ -254,6 +291,13 @@ export default function RunDetailPage() {
   const [run, setRun] = useState<Run | null>(null);
   const [results, setResults] = useState<TestResult[]>([]);
   const [filter, setFilter] = useState<string>("");
+  const [selectedResult, setSelectedResult] = useState<TestResult | null>(null);
+  const [paneVisible, setPaneVisible] = useState(false);
+  const [caseDetail, setCaseDetail] = useState<TestCaseDetail | null>(null);
+  const [caseDescription, setCaseDescription] = useState("");
+  const [saving, setSaving] = useState(false);
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const closingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     apiFetch<Run>(`/runs/${params.runId}`).then(setRun);
@@ -271,6 +315,59 @@ export default function RunDetailPage() {
   const handleDelete = async () => {
     await apiFetch(`/runs/${params.runId}`, { method: "DELETE" });
     router.push(`/projects/${params.id}/runs`);
+  };
+
+  const handleSelectResult = async (r: TestResult) => {
+    // Save pending description for previous selection
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    if (caseDetail && caseDescription !== (caseDetail.description || "")) {
+      await apiFetch(`/testcases/${caseDetail.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ description: caseDescription }),
+      });
+    }
+    if (closingTimeout.current) { clearTimeout(closingTimeout.current); closingTimeout.current = null; }
+    setSelectedResult(r);
+    setPaneVisible(true);
+    if (r.test_case_id) {
+      const tc = await apiFetch<TestCaseDetail>(`/testcases/${r.test_case_id}`);
+      setCaseDetail(tc);
+      setCaseDescription(tc.description || "");
+    } else {
+      setCaseDetail(null);
+      setCaseDescription("");
+    }
+  };
+
+  const handleDescriptionChange = (value: string) => {
+    setCaseDescription(value);
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(async () => {
+      if (!caseDetail) return;
+      setSaving(true);
+      await apiFetch(`/testcases/${caseDetail.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ description: value }),
+      });
+      setCaseDetail((prev) => prev ? { ...prev, description: value } : null);
+      setSaving(false);
+    }, 600);
+  };
+
+  const handleClosePane = () => {
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    if (caseDetail && caseDescription !== (caseDetail.description || "")) {
+      apiFetch(`/testcases/${caseDetail.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ description: caseDescription }),
+      });
+    }
+    setPaneVisible(false);
+    closingTimeout.current = setTimeout(() => {
+      setSelectedResult(null);
+      setCaseDetail(null);
+      closingTimeout.current = null;
+    }, 200);
   };
 
   if (!run) return <div className="page-loader">Loading run data...</div>;
@@ -374,13 +471,23 @@ export default function RunDetailPage() {
                       gap: 6,
                     }}>
                       {story.name}
+                      <PriorityTag priority={story.priority} />
                       <CountBadges results={story.results} />
                     </summary>
                     <div className="card-static" style={{ overflow: "hidden", marginTop: 4, marginBottom: 4 }}>
                       <table className="data-table">
                         <tbody>
                           {story.results.map((r) => (
-                            <tr key={r.id} className="status-row" data-status={r.status}>
+                            <tr
+                              key={r.id}
+                              className="status-row"
+                              data-status={r.status}
+                              onClick={() => handleSelectResult(r)}
+                              style={{
+                                cursor: "pointer",
+                                background: selectedResult?.id === r.id ? "var(--bg-elevated)" : undefined,
+                              }}
+                            >
                               <td style={{ padding: 0, width: 4 }}></td>
                               <td style={{ fontWeight: 500, fontSize: 13 }}>{r.name}</td>
                               <td><StatusBadge status={r.status} /></td>
@@ -433,6 +540,169 @@ export default function RunDetailPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {/* Floating test case detail pane */}
+      {selectedResult && (
+        <>
+        <div
+          onClick={handleClosePane}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 99,
+          }}
+        />
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            right: 0,
+            bottom: 0,
+            width: 400,
+            background: "var(--bg-surface)",
+            borderLeft: "1px solid var(--border)",
+            boxShadow: "-8px 0 32px rgba(0,0,0,0.3)",
+            zIndex: 100,
+            display: "flex",
+            flexDirection: "column",
+            transform: paneVisible ? "translateX(0)" : "translateX(100%)",
+            transition: "transform 0.2s ease-out",
+          }}
+        >
+          {/* Pane header */}
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            padding: "16px 20px",
+            borderBottom: "1px solid var(--border)",
+            flexShrink: 0,
+          }}>
+            <div style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 600,
+              fontSize: 14,
+              color: "var(--text-primary)",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              flex: 1,
+            }}>
+              {selectedResult.name}
+            </div>
+            <button
+              onClick={handleClosePane}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                color: "var(--text-muted)",
+                padding: "4px",
+                display: "flex",
+                alignItems: "center",
+                borderRadius: "var(--radius-sm)",
+                transition: "color 0.15s",
+                flexShrink: 0,
+                marginLeft: 8,
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-muted)"; }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+
+          {/* Scrollable content */}
+          <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px" }}>
+            {/* Result info */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginBottom: 16, fontSize: 12 }}>
+              <div>
+                <span style={{ color: "var(--text-muted)" }}>Status </span>
+                <StatusBadge status={selectedResult.status} />
+              </div>
+              <div>
+                <span style={{ color: "var(--text-muted)" }}>Duration </span>
+                <span className="mono" style={{ color: "var(--text-secondary)" }}>
+                  {selectedResult.duration_ms}ms
+                </span>
+              </div>
+              {selectedResult.feature_name && (
+                <div>
+                  <span style={{ color: "var(--text-muted)" }}>Feature </span>
+                  <span style={{ color: "var(--text-secondary)" }}>{selectedResult.feature_name}</span>
+                </div>
+              )}
+              {selectedResult.story_name && (
+                <div>
+                  <span style={{ color: "var(--text-muted)" }}>Story </span>
+                  <span style={{ color: "var(--text-secondary)" }}>{selectedResult.story_name}</span>
+                </div>
+              )}
+              {selectedResult.class_name && (
+                <div>
+                  <span style={{ color: "var(--text-muted)" }}>Class </span>
+                  <span className="mono" style={{ color: "var(--text-secondary)" }}>{selectedResult.class_name}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Error message */}
+            {selectedResult.error_message && (
+              <div style={{ marginBottom: 16 }}>
+                <div className="section-label">Error</div>
+                <div className="error-block">
+                  <pre>{selectedResult.error_message}</pre>
+                </div>
+              </div>
+            )}
+
+            {/* Test case description (if linked to a test case) */}
+            {caseDetail ? (
+              <div>
+                <div style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}>
+                  <div className="section-label" style={{ margin: 0 }}>Description</div>
+                  {saving && (
+                    <span className="mono" style={{ fontSize: 10, color: "var(--text-muted)" }}>
+                      Saving...
+                    </span>
+                  )}
+                </div>
+                <textarea
+                  className="input"
+                  value={caseDescription}
+                  onChange={(e) => handleDescriptionChange(e.target.value)}
+                  placeholder="Add a description for this test case..."
+                  style={{
+                    width: "100%",
+                    minHeight: 140,
+                    resize: "vertical",
+                    fontFamily: "var(--font-body)",
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    padding: "10px 12px",
+                  }}
+                />
+              </div>
+            ) : (
+              <div style={{ color: "var(--text-muted)", fontSize: 12 }}>
+                This result is not linked to a test case.
+              </div>
+            )}
+          </div>
+        </div>
+        </>
       )}
     </div>
   );

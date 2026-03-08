@@ -64,13 +64,6 @@ export function ensureMigrated() {
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
 
-    CREATE TABLE IF NOT EXISTS api_keys (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-      key_hash TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
   `);
 
   // Migration: add sort_order to features and stories
@@ -88,6 +81,17 @@ export function ensureMigrated() {
   if (!caseCols.some((c) => c.name === "sort_order")) {
     db.exec("ALTER TABLE test_cases ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0");
     db.exec("UPDATE test_cases SET sort_order = id");
+  }
+
+  // Migration: add priority to stories
+  if (!storyCols.some((c) => c.name === "priority")) {
+    db.exec("ALTER TABLE stories ADD COLUMN priority TEXT");
+  }
+
+  // Migration: add key to test_cases (for matching pytest function names)
+  if (!caseCols.some((c) => c.name === "key")) {
+    db.exec("ALTER TABLE test_cases ADD COLUMN key TEXT");
+    db.exec("UPDATE test_cases SET key = name WHERE key IS NULL");
   }
 
   migrated = true;

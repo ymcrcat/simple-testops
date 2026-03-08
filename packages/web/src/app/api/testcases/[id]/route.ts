@@ -8,25 +8,32 @@ export function GET(_req: NextRequest, { params }: { params: { id: string } }) {
 }
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
-  const { name, class_name, description, status, sort_order } = await req.json();
-  if (sort_order !== undefined) {
-    db().prepare("UPDATE test_cases SET sort_order = ? WHERE id = ?").run(sort_order, params.id);
+  const body = await req.json();
+  if (body.sort_order !== undefined) {
+    db().prepare("UPDATE test_cases SET sort_order = ? WHERE id = ?").run(body.sort_order, params.id);
   }
-  if (name || class_name || description || status) {
+  if ("description" in body) {
+    db().prepare("UPDATE test_cases SET description = ? WHERE id = ?").run(body.description ?? null, params.id);
+  }
+  if (body.key !== undefined) {
+    db().prepare("UPDATE test_cases SET key = ? WHERE id = ?").run(body.key || null, params.id);
+  }
+  if (body.name || body.class_name || body.status) {
     db().prepare(
       `UPDATE test_cases SET
         name = COALESCE(?, name),
         class_name = COALESCE(?, class_name),
-        description = COALESCE(?, description),
         status = COALESCE(?, status)
        WHERE id = ?`
-    ).run(name || null, class_name || null, description || null, status || null, params.id);
+    ).run(body.name || null, body.class_name || null, body.status || null, params.id);
   }
   const tc = db().prepare("SELECT * FROM test_cases WHERE id = ?").get(params.id);
   return NextResponse.json(tc);
 }
 
 export function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  db().prepare("DELETE FROM test_cases WHERE id = ?").run(params.id);
+  const d = db();
+  d.prepare("UPDATE test_results SET test_case_id = NULL WHERE test_case_id = ?").run(params.id);
+  d.prepare("DELETE FROM test_cases WHERE id = ?").run(params.id);
   return new NextResponse(null, { status: 204 });
 }

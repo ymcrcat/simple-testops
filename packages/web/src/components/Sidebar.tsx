@@ -1,11 +1,102 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 interface SidebarProps {
   projectId: string;
   projectName?: string;
+}
+
+function getApiSkill(projectId: string): string {
+  return `# TestOps API Skill
+
+Base URL: \${BASE_URL}/api (default: http://localhost:3000/api)
+Content-Type: application/json
+Current project ID: ${projectId}
+
+## Features
+
+### List features
+GET /api/features?project_id=${projectId}
+
+### Create feature
+POST /api/features
+Body: { "project_id": ${projectId}, "name": "Feature Name", "description": "optional" }
+
+### Get feature
+GET /api/features/:id
+
+### Update feature
+PUT /api/features/:id
+Body: { "name": "New Name", "description": "New desc", "sort_order": 0 }
+
+### Delete feature
+DELETE /api/features/:id
+
+## Stories
+
+### List stories for a feature
+GET /api/stories?feature_id=:featureId
+
+### Create story
+POST /api/stories
+Body: { "feature_id": :featureId, "name": "Story Name", "description": "optional" }
+
+### Get story
+GET /api/stories/:id
+
+### Update story
+PUT /api/stories/:id
+Body: { "name": "New Name", "description": "New desc", "sort_order": 0 }
+
+### Delete story
+DELETE /api/stories/:id
+
+## Test Cases
+
+### List test cases for a project
+GET /api/testcases?project_id=${projectId}
+
+### List test cases for a story
+GET /api/testcases?story_id=:storyId
+
+### Create test case
+POST /api/testcases
+Body: { "story_id": :storyId, "name": "Test Name", "class_name": "optional", "description": "optional" }
+
+### Get test case
+GET /api/testcases/:id
+
+### Update test case
+PUT /api/testcases/:id
+Body: { "name": "New Name", "class_name": "cls", "description": "Test desc", "status": "active|deprecated", "sort_order": 0 }
+
+### Delete test case
+DELETE /api/testcases/:id
+
+## Example: Create a full hierarchy
+
+\`\`\`bash
+# 1. Create a feature
+curl -X POST http://localhost:3000/api/features \\
+  -H "Content-Type: application/json" \\
+  -d '{"project_id": ${projectId}, "name": "Authentication"}'
+# Returns: { "id": 1, "name": "Authentication", ... }
+
+# 2. Create a story under the feature
+curl -X POST http://localhost:3000/api/stories \\
+  -H "Content-Type: application/json" \\
+  -d '{"feature_id": 1, "name": "Login"}'
+# Returns: { "id": 1, "name": "Login", ... }
+
+# 3. Create test cases under the story
+curl -X POST http://localhost:3000/api/testcases \\
+  -H "Content-Type: application/json" \\
+  -d '{"story_id": 1, "name": "test_valid_credentials", "class_name": "auth.login"}'
+\`\`\`
+`;
 }
 
 const navItems = [
@@ -17,6 +108,7 @@ const navItems = [
 
 export default function Sidebar({ projectId, projectName }: SidebarProps) {
   const pathname = usePathname();
+  const [copied, setCopied] = useState(false);
   const base = `/projects/${projectId}`;
 
   return (
@@ -26,9 +118,10 @@ export default function Sidebar({ projectId, projectName }: SidebarProps) {
       borderRight: "1px solid var(--border)",
       display: "flex",
       flexDirection: "column",
-      minHeight: "100vh",
+      height: "100vh",
       position: "sticky",
       top: 0,
+      overflow: "hidden",
     }}>
       {/* Logo */}
       <Link href="/" style={{
@@ -132,7 +225,43 @@ export default function Sidebar({ projectId, projectName }: SidebarProps) {
       <div style={{
         padding: "12px 20px 16px",
         borderTop: "1px solid var(--border)",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
       }}>
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(getApiSkill(projectId));
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+          style={{
+            background: "none",
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-sm)",
+            padding: "7px 10px",
+            cursor: "pointer",
+            fontSize: 12,
+            color: copied ? "var(--color-passed)" : "var(--text-secondary)",
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            transition: "all 0.2s",
+            width: "100%",
+          }}
+        >
+          {copied ? (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20 6L9 17l-5-5" />
+            </svg>
+          ) : (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" />
+            </svg>
+          )}
+          {copied ? "Copied!" : "Copy API Skill"}
+        </button>
         <Link
           href="/"
           style={{

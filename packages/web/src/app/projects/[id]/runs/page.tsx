@@ -255,7 +255,7 @@ export default function RunsPage() {
                     top: 0,
                     bottom: 0,
                     width: `${pct}%`,
-                    background: pct >= 80 ? "var(--color-passed-glow)" : pct >= 50 ? "var(--color-skipped-glow)" : "var(--color-failed-glow)",
+                    background: `linear-gradient(to right, ${pct >= 80 ? "var(--color-passed-glow)" : pct >= 50 ? "var(--color-skipped-glow)" : "var(--color-failed-glow)"}, transparent)`,
                     transition: "width 0.6s ease-out",
                     borderRadius: "inherit",
                   }} />

@@ -1,16 +1,10 @@
 import { db } from "./lib/db";
-import crypto from "crypto";
 
 const d = db();
 
 // Create project
 const proj = d.prepare("INSERT INTO projects (name, slug) VALUES (?, ?)").run("Demo Project", "demo");
 const projectId = proj.lastInsertRowid;
-
-// Create API key
-const rawKey = "testops-demo-key-12345";
-const keyHash = crypto.createHash("sha256").update(rawKey).digest("hex");
-d.prepare("INSERT INTO api_keys (project_id, key_hash, name) VALUES (?, ?, ?)").run(projectId, keyHash, "Demo Key");
 
 // Create features
 const f1 = d.prepare("INSERT INTO features (project_id, name, description) VALUES (?, ?, ?)").run(projectId, "Authentication", "User auth flows");
@@ -38,5 +32,4 @@ for (const tc of cases) {
 }
 
 console.log("Seed data created!");
-console.log(`API Key: ${rawKey}`);
-console.log(`Project slug: demo`);
+console.log("Project slug: demo");

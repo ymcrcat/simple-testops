@@ -63,13 +63,6 @@ function createTestDb() {
       error_message TEXT,
       created_at TEXT NOT NULL DEFAULT (datetime('now'))
     );
-    CREATE TABLE IF NOT EXISTS api_keys (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
-      key_hash TEXT NOT NULL UNIQUE,
-      name TEXT NOT NULL,
-      created_at TEXT NOT NULL DEFAULT (datetime('now'))
-    );
   `);
   return db;
 }
@@ -94,7 +87,7 @@ describe("database schema", () => {
 
     const names = tables.map((t) => t.name);
     expect(names).toEqual(expect.arrayContaining([
-      "api_keys", "features", "projects", "stories", "test_cases", "test_results", "test_runs",
+      "features", "projects", "stories", "test_cases", "test_results", "test_runs",
     ]));
   });
 

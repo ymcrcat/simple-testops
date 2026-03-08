@@ -4,8 +4,8 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 
 interface Feature { id: number; name: string; sort_order: number; }
-interface Story { id: number; feature_id: number; name: string; sort_order: number; }
-interface TestCase { id: number; story_id: number; name: string; status: string; class_name: string; sort_order: number; }
+interface Story { id: number; feature_id: number; name: string; sort_order: number; priority: string | null; }
+export interface TestCase { id: number; story_id: number; name: string; status: string; class_name: string; sort_order: number; description: string | null; }
 
 type DragItem =
   | { type: "feature"; id: number; index: number }
@@ -16,7 +16,7 @@ interface DropTarget {
   type: "feature" | "story" | "case";
   index: number;
   position: "before" | "after";
-  parentId?: number; // featureId for stories, storyId for cases
+  parentId?: number;
 }
 
 const gripStyle: React.CSSProperties = {
@@ -40,6 +40,130 @@ function GripIcon({ size = 14 }: { size?: number }) {
       <circle cx="9" cy="19" r="1.5" />
       <circle cx="15" cy="19" r="1.5" />
     </svg>
+  );
+}
+
+function ConfirmModal({ title, message, onConfirm, onCancel }: {
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onCancel();
+      if (e.key === "Enter") onConfirm();
+    };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onConfirm, onCancel]);
+
+  return (
+    <div
+      onClick={onCancel}
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "rgba(0,0,0,0.6)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        animation: "fadeIn 0.15s ease-out",
+      }}
+    >
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--bg-card)",
+          border: "1px solid var(--border-active)",
+          borderRadius: "var(--radius-lg)",
+          padding: "24px",
+          maxWidth: 380,
+          width: "90%",
+          boxShadow: "0 16px 64px rgba(0,0,0,0.5)",
+          animation: "fadeInScale 0.15s ease-out",
+        }}
+      >
+        <div style={{
+          fontFamily: "var(--font-display)",
+          fontWeight: 700,
+          fontSize: 16,
+          color: "var(--text-primary)",
+          marginBottom: 8,
+        }}>
+          {title}
+        </div>
+        <div style={{
+          fontSize: 13,
+          color: "var(--text-secondary)",
+          lineHeight: 1.6,
+          marginBottom: 20,
+        }}>
+          {message}
+        </div>
+        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+          <button
+            className="btn btn-ghost"
+            onClick={onCancel}
+            style={{ fontSize: 13, padding: "7px 16px" }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            style={{
+              fontFamily: "var(--font-body)",
+              fontSize: 13,
+              fontWeight: 600,
+              padding: "7px 16px",
+              borderRadius: "var(--radius-sm)",
+              border: "none",
+              cursor: "pointer",
+              background: "var(--color-failed)",
+              color: "#fff",
+              transition: "opacity 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DeleteButton({ onClick, size = 14 }: { onClick: (e: React.MouseEvent) => void; size?: number }) {
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(e); }}
+      className="delete-btn"
+      style={{
+        background: "none",
+        border: "none",
+        cursor: "pointer",
+        color: "var(--text-muted)",
+        padding: 4,
+        display: "flex",
+        alignItems: "center",
+        borderRadius: "var(--radius-sm)",
+        opacity: 0,
+        transition: "opacity 0.15s, color 0.15s",
+        flexShrink: 0,
+      }}
+      onMouseEnter={(e) => { e.currentTarget.style.color = "var(--color-failed)"; }}
+      onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-muted)"; }}
+    >
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="3 6 5 6 21 6" />
+        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+        <path d="M10 11v6" />
+        <path d="M14 11v6" />
+      </svg>
+    </button>
   );
 }
 
@@ -69,17 +193,129 @@ function reorder<T>(arr: T[], from: number, to: number): T[] {
 
 function getInsertIndex(fromIndex: number, toIndex: number, position: "before" | "after"): number {
   const target = position === "after" ? toIndex + 1 : toIndex;
-  // If dragging from before the target, the splice-remove shifts indices down
   if (fromIndex < target) return target - 1;
   return target;
 }
 
-export default function TestCaseTree({ projectId }: { projectId: string }) {
+const priorityColors: Record<string, { bg: string; text: string }> = {
+  P0: { bg: "var(--color-failed-glow)", text: "var(--color-failed)" },
+  P1: { bg: "var(--color-skipped-glow)", text: "var(--color-skipped)" },
+  P2: { bg: "var(--bg-elevated)", text: "var(--text-muted)" },
+};
+
+function PriorityBadge({ story, onUpdate }: { story: Story; onUpdate: (priority: string | null) => void }) {
+  const [open, setOpen] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const p = story.priority;
+  const colors = p ? priorityColors[p] : null;
+
+  return (
+    <div
+      ref={ref}
+      style={{ position: "relative", display: "inline-flex", marginLeft: 6 }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 10,
+          padding: "2px 6px",
+          borderRadius: 4,
+          border: !colors && hovered ? "1px dashed var(--text-muted)" : "1px solid transparent",
+          cursor: "pointer",
+          lineHeight: 1.2,
+          background: colors ? colors.bg : hovered ? "var(--bg-elevated)" : "transparent",
+          color: colors ? colors.text : "var(--text-muted)",
+          opacity: colors ? 1 : hovered ? 1 : 0,
+          transition: "all 0.15s",
+          fontWeight: 600,
+        }}
+      >
+        {p || "+"}
+      </button>
+      {open && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: "absolute",
+            top: "100%",
+            left: 0,
+            marginTop: 4,
+            background: "var(--bg-elevated)",
+            border: "1px solid var(--border-active)",
+            borderRadius: "var(--radius-md)",
+            boxShadow: "0 8px 32px rgba(0,0,0,0.4)",
+            zIndex: 50,
+            overflow: "hidden",
+            animation: "fadeIn 0.15s ease-out",
+          }}
+        >
+          {(["P0", "P1", "P2", null] as (string | null)[]).map((opt) => {
+            const c = opt ? priorityColors[opt] : null;
+            return (
+              <button
+                key={opt ?? "none"}
+                onClick={() => { onUpdate(opt); setOpen(false); }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  width: "100%",
+                  padding: "6px 14px",
+                  background: "none",
+                  border: "none",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  fontFamily: "var(--font-mono)",
+                  color: c ? c.text : "var(--text-muted)",
+                  transition: "background 0.1s",
+                  whiteSpace: "nowrap",
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-hover)"; }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = "none"; }}
+              >
+                {opt || "None"}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface TestCaseTreeProps {
+  projectId: string;
+  selectedCaseId?: number | null;
+  onSelectCase?: (tc: TestCase) => void;
+}
+
+export default function TestCaseTree({ projectId, selectedCaseId, onSelectCase }: TestCaseTreeProps) {
   const [features, setFeatures] = useState<Feature[]>([]);
   const [stories, setStories] = useState<Story[]>([]);
   const [cases, setCases] = useState<TestCase[]>([]);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [newStoryName, setNewStoryName] = useState<Record<number, string>>({});
+  const [newCaseName, setNewCaseName] = useState<Record<number, string>>({});
+
+  const [editing, setEditing] = useState<{ type: "feature" | "story" | "case"; id: number } | null>(null);
+  const [editName, setEditName] = useState("");
+  const editRef = useRef<HTMLInputElement>(null);
+
+  const [pendingDelete, setPendingDelete] = useState<{ type: "feature" | "story" | "case"; id: number; name: string } | null>(null);
 
   const dragItem = useRef<DragItem | null>(null);
   const [drop, setDrop] = useState<DropTarget | null>(null);
@@ -88,10 +324,14 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
     apiFetch<Feature[]>(`/features?project_id=${projectId}`).then(setFeatures);
   }, [projectId]);
 
+  const reloadCases = useCallback(() => {
+    apiFetch<TestCase[]>(`/testcases?project_id=${projectId}`).then(setCases);
+  }, [projectId]);
+
   useEffect(() => {
     loadFeatures();
-    apiFetch<TestCase[]>(`/testcases?project_id=${projectId}`).then(setCases);
-  }, [projectId, loadFeatures]);
+    reloadCases();
+  }, [projectId, loadFeatures, reloadCases]);
 
   useEffect(() => {
     if (features.length === 0) { setStories([]); return; }
@@ -106,10 +346,6 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
     );
   };
 
-  const reloadCases = () => {
-    apiFetch<TestCase[]>(`/testcases?project_id=${projectId}`).then(setCases);
-  };
-
   const createStory = async (featureId: number) => {
     const name = (newStoryName[featureId] || "").trim();
     if (!name) return;
@@ -121,6 +357,68 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
     reloadStories();
   };
 
+  const createCase = async (storyId: number) => {
+    const name = (newCaseName[storyId] || "").trim();
+    if (!name) return;
+    await apiFetch("/testcases", {
+      method: "POST",
+      body: JSON.stringify({ story_id: storyId, name }),
+    });
+    setNewCaseName((prev) => ({ ...prev, [storyId]: "" }));
+    reloadCases();
+  };
+
+  const updateStoryPriority = async (storyId: number, priority: string | null) => {
+    await apiFetch(`/stories/${storyId}`, { method: "PUT", body: JSON.stringify({ priority }) });
+    setStories((prev) => prev.map((s) => s.id === storyId ? { ...s, priority } : s));
+  };
+
+  const requestDelete = (type: "feature" | "story" | "case", id: number, name: string) => {
+    setPendingDelete({ type, id, name });
+  };
+
+  const confirmDelete = async () => {
+    if (!pendingDelete) return;
+    const { type, id } = pendingDelete;
+    if (type === "feature") {
+      await apiFetch(`/features/${id}`, { method: "DELETE" });
+      setFeatures((prev) => prev.filter((f) => f.id !== id));
+      setStories((prev) => prev.filter((s) => s.feature_id !== id));
+    } else if (type === "story") {
+      await apiFetch(`/stories/${id}`, { method: "DELETE" });
+      setStories((prev) => prev.filter((s) => s.id !== id));
+      setCases((prev) => prev.filter((c) => c.story_id !== id));
+    } else {
+      await apiFetch(`/testcases/${id}`, { method: "DELETE" });
+      setCases((prev) => prev.filter((c) => c.id !== id));
+    }
+    setPendingDelete(null);
+  };
+
+  const startEditing = (type: "feature" | "story" | "case", id: number, name: string) => {
+    setEditing({ type, id });
+    setEditName(name);
+    setTimeout(() => editRef.current?.select(), 0);
+  };
+
+  const commitRename = async () => {
+    if (!editing) return;
+    const trimmed = editName.trim();
+    if (!trimmed) { setEditing(null); return; }
+    const endpoint = editing.type === "feature" ? "features" : editing.type === "story" ? "stories" : "testcases";
+    await apiFetch(`/${endpoint}/${editing.id}`, { method: "PUT", body: JSON.stringify({ name: trimmed }) });
+    if (editing.type === "feature") {
+      setFeatures((prev) => prev.map((f) => f.id === editing.id ? { ...f, name: trimmed } : f));
+    } else if (editing.type === "story") {
+      setStories((prev) => prev.map((s) => s.id === editing.id ? { ...s, name: trimmed } : s));
+    } else {
+      setCases((prev) => prev.map((c) => c.id === editing.id ? { ...c, name: trimmed } : c));
+    }
+    setEditing(null);
+  };
+
+  const cancelRename = () => setEditing(null);
+
   const persistOrder = async (type: "features" | "stories" | "testcases", items: { id: number }[]) => {
     await Promise.all(
       items.map((item, i) =>
@@ -129,7 +427,6 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
     );
   };
 
-  // Generic drag start
   const onDragStart = (e: React.DragEvent, item: DragItem) => {
     dragItem.current = item;
     e.dataTransfer.effectAllowed = "move";
@@ -143,7 +440,6 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
     setDrop(null);
   };
 
-  // Feature handlers
   const onFeatureDragOver = (e: React.DragEvent, index: number) => {
     e.preventDefault();
     if (!dragItem.current || dragItem.current.type !== "feature") return;
@@ -164,7 +460,6 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
     await persistOrder("features", reordered);
   };
 
-  // Story handlers
   const onStoryDragOver = (e: React.DragEvent, featureId: number, index: number) => {
     e.preventDefault();
     if (!dragItem.current || dragItem.current.type !== "story" || dragItem.current.featureId !== featureId) return;
@@ -187,7 +482,6 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
     await persistOrder("stories", reordered);
   };
 
-  // Test case handlers
   const onCaseDragOver = (e: React.DragEvent, storyId: number, index: number) => {
     e.preventDefault();
     if (!dragItem.current || dragItem.current.type !== "case" || dragItem.current.storyId !== storyId) return;
@@ -221,6 +515,21 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
   const isDropAt = (type: string, index: number, pos: "before" | "after", parentId?: number) =>
     drop?.type === type && drop.index === index && drop.position === pos && drop.parentId === parentId;
 
+  const deleteMessages: Record<string, { title: string; message: string }> = {
+    feature: {
+      title: "Delete Feature",
+      message: `This will permanently delete "${pendingDelete?.name}" and all its stories and test cases.`,
+    },
+    story: {
+      title: "Delete Story",
+      message: `This will permanently delete "${pendingDelete?.name}" and all its test cases.`,
+    },
+    case: {
+      title: "Delete Test Case",
+      message: `This will permanently delete "${pendingDelete?.name}".`,
+    },
+  };
+
   if (features.length === 0) {
     return <div className="empty-state"><p>No features defined yet.</p></div>;
   }
@@ -240,7 +549,6 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
         >
           <DropIndicator show={isDropAt("feature", fi, "before")} />
 
-          {/* Feature row */}
           <div style={{ display: "flex", alignItems: "center" }}>
             <div
               style={gripStyle}
@@ -278,14 +586,27 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.7 }}>
                 <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
               </svg>
-              {f.name}
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", marginLeft: "auto" }}>
+              {editing?.type === "feature" && editing.id === f.id ? (
+                <input
+                  ref={editRef}
+                  className="input"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") cancelRename(); }}
+                  onBlur={commitRename}
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ fontSize: 14, fontFamily: "var(--font-display)", fontWeight: 600, padding: "2px 6px", flex: 1 }}
+                />
+              ) : (
+                <span onDoubleClick={(e) => { e.stopPropagation(); startEditing("feature", f.id, f.name); }}>{f.name}</span>
+              )}
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", marginLeft: "auto", flexShrink: 0 }}>
                 {stories.filter((s) => s.feature_id === f.id).length} stories
               </span>
             </button>
+            <DeleteButton onClick={() => requestDelete("feature", f.id, f.name)} />
           </div>
 
-          {/* Stories */}
           {expanded.has(`f-${f.id}`) && (
             <div style={{ marginLeft: 20 }}>
               {(() => {
@@ -337,14 +658,28 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
                           >
                             <path d="M9 18l6-6-6-6" />
                           </svg>
-                          {s.name}
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", marginLeft: "auto" }}>
+                          {editing?.type === "story" && editing.id === s.id ? (
+                            <input
+                              ref={editRef}
+                              className="input"
+                              value={editName}
+                              onChange={(e) => setEditName(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") cancelRename(); }}
+                              onBlur={commitRename}
+                              onClick={(e) => e.stopPropagation()}
+                              style={{ fontSize: 13, fontFamily: "var(--font-body)", fontWeight: 500, padding: "2px 6px", flex: 1 }}
+                            />
+                          ) : (
+                            <span onDoubleClick={(e) => { e.stopPropagation(); startEditing("story", s.id, s.name); }}>{s.name}</span>
+                          )}
+                          <PriorityBadge story={s} onUpdate={(p) => updateStoryPriority(s.id, p)} />
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", marginLeft: "auto", flexShrink: 0 }}>
                             {storyCases.length}
                           </span>
                         </button>
+                        <DeleteButton onClick={() => requestDelete("story", s.id, s.name)} size={12} />
                       </div>
 
-                      {/* Test Cases */}
                       {expanded.has(`s-${s.id}`) && (
                         <div style={{ marginLeft: 14 }}>
                           {storyCases.map((c, ci) => (
@@ -358,6 +693,7 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
                             >
                               <DropIndicator show={isDropAt("case", ci, "before", s.id)} />
                               <div
+                                onClick={() => onSelectCase?.(c)}
                                 style={{
                                   display: "flex",
                                   alignItems: "center",
@@ -366,10 +702,12 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
                                   padding: "6px 12px",
                                   fontFamily: "var(--font-mono)",
                                   fontSize: 12,
-                                  color: "var(--text-secondary)",
-                                  borderLeft: "1px solid var(--border)",
-                                  transition: "color 0.15s",
-                                  cursor: "grab",
+                                  color: selectedCaseId === c.id ? "var(--text-primary)" : "var(--text-secondary)",
+                                  background: selectedCaseId === c.id ? "var(--bg-elevated)" : "transparent",
+                                  borderLeft: selectedCaseId === c.id ? "2px solid var(--color-accent)" : "1px solid var(--border)",
+                                  borderRadius: "0 var(--radius-sm) var(--radius-sm) 0",
+                                  transition: "all 0.15s",
+                                  cursor: "pointer",
                                 }}
                               >
                                 <div style={{ ...gripStyle, padding: "0 4px 0 0" }}
@@ -388,11 +726,49 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
                                   opacity: 0.6,
                                   flexShrink: 0,
                                 }} />
-                                {c.name}
+                                {editing?.type === "case" && editing.id === c.id ? (
+                                  <input
+                                    ref={editRef}
+                                    className="input"
+                                    value={editName}
+                                    onChange={(e) => setEditName(e.target.value)}
+                                    onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") cancelRename(); }}
+                                    onBlur={commitRename}
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={{ fontSize: 12, fontFamily: "var(--font-mono)", padding: "2px 6px", flex: 1 }}
+                                  />
+                                ) : (
+                                  <span onDoubleClick={(e) => { e.stopPropagation(); startEditing("case", c.id, c.name); }}>{c.name}</span>
+                                )}
+                                <span style={{ marginLeft: "auto" }}>
+                                  <DeleteButton onClick={() => requestDelete("case", c.id, c.name)} size={11} />
+                                </span>
                               </div>
                               <DropIndicator show={isDropAt("case", ci, "after", s.id)} />
                             </div>
                           ))}
+
+                          {/* Add Test Case */}
+                          <div style={{ display: "flex", gap: 6, padding: "4px 12px 4px 20px", alignItems: "center" }}>
+                            <input
+                              className="input"
+                              value={newCaseName[s.id] || ""}
+                              onChange={(e) => setNewCaseName((prev) => ({ ...prev, [s.id]: e.target.value }))}
+                              placeholder="New test case..."
+                              onKeyDown={(e) => e.key === "Enter" && createCase(s.id)}
+                              style={{ fontSize: 11, padding: "4px 8px", flex: 1, maxWidth: 200 }}
+                            />
+                            <button
+                              className="btn btn-ghost"
+                              onClick={() => createCase(s.id)}
+                              style={{ fontSize: 11, padding: "3px 8px" }}
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                                <path d="M12 5v14M5 12h14" />
+                              </svg>
+                              Add
+                            </button>
+                          </div>
                         </div>
                       )}
 
@@ -429,6 +805,14 @@ export default function TestCaseTree({ projectId }: { projectId: string }) {
           <DropIndicator show={isDropAt("feature", fi, "after")} />
         </div>
       ))}
+      {pendingDelete && (
+        <ConfirmModal
+          title={deleteMessages[pendingDelete.type].title}
+          message={deleteMessages[pendingDelete.type].message}
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
+      )}
     </div>
   );
 }

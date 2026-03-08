@@ -22,6 +22,17 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 export function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  db().prepare("DELETE FROM features WHERE id = ?").run(params.id);
+  const d = db();
+  // Nullify test_results references before cascading delete
+  d.prepare(`
+    UPDATE test_results SET test_case_id = NULL
+    WHERE test_case_id IN (
+      SELECT tc.id FROM test_cases tc
+      JOIN stories s ON tc.story_id = s.id
+      JOIN features f ON s.feature_id = f.id
+      WHERE f.id = ?
+    )
+  `).run(params.id);
+  d.prepare("DELETE FROM features WHERE id = ?").run(params.id);
   return new NextResponse(null, { status: 204 });
 }

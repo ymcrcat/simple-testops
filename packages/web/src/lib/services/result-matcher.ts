@@ -65,7 +65,19 @@ export function matchTestCase(
 ): number {
   const db = getDb();
 
-  // Try exact match on class_name + name first
+  // 1. Try match by key (pytest function name)
+  const byKey = db
+    .prepare(
+      `SELECT tc.id FROM test_cases tc
+       JOIN stories s ON tc.story_id = s.id
+       JOIN features f ON s.feature_id = f.id
+       WHERE f.project_id = ? AND tc.key = ? AND tc.status = 'active'`
+    )
+    .get(projectId, tc.name) as { id: number } | undefined;
+
+  if (byKey) return byKey.id;
+
+  // 2. Try exact match on class_name + name
   const exact = db
     .prepare(
       `SELECT tc.id FROM test_cases tc
@@ -77,7 +89,7 @@ export function matchTestCase(
 
   if (exact) return exact.id;
 
-  // Use properties if available, otherwise fall back to classname parsing
+  // 3. Fall back to auto-create from classname parsing or properties
   const { featureName, storyName } = tc.feature && tc.story
     ? { featureName: tc.feature, storyName: tc.story }
     : parseClassname(tc.classname);
