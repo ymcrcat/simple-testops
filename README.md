@@ -1,4 +1,4 @@
-# TestOps
+# Simple TestOps
 
 Test management service for organizing test cases by features and stories, running test suites, and uploading JUnit XML results via CLI. Includes a web UI for browsing and managing everything.
 
