@@ -6,4 +6,5 @@ dist/
 *.db-wal
 .env
 .testops/
+*.tsbuildinfo
 .claude
