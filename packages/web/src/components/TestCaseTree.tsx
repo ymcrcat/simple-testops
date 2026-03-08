@@ -743,9 +743,8 @@ export default function TestCaseTree({ projectId, selectedCaseId, onSelectCase }
                                 ) : (
                                   <span onDoubleClick={(e) => { e.stopPropagation(); startEditing("case", c.id, c.name); }}>{c.name}</span>
                                 )}
-                                <span style={{ marginLeft: "auto" }}>
-                                  <DeleteButton onClick={() => requestDelete("case", c.id, c.name)} size={11} />
-                                </span>
+                                <span style={{ flex: 1 }} />
+                                <DeleteButton onClick={() => requestDelete("case", c.id, c.name)} size={11} />
                               </div>
                               <DropIndicator show={isDropAt("case", ci, "after", s.id)} />
                             </div>
