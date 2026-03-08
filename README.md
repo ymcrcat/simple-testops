@@ -34,7 +34,7 @@ cd packages/web
 npm run seed
 ```
 
-This creates a "Demo Project" with features, stories, test cases, and an API key: `testops-demo-key-12345`.
+This creates a "Demo Project" with features, stories, and test cases.
 
 ## API
 
@@ -48,8 +48,6 @@ POST   /api/projects          { "name": "My Project" }
 GET    /api/projects/:id
 PUT    /api/projects/:id      { "name": "New Name" }
 DELETE /api/projects/:id
-POST   /api/projects/:id/api-keys  { "name": "CI Key" }
-GET    /api/projects/:id/api-keys
 ```
 
 ### Features
@@ -77,8 +75,8 @@ GET    /api/testcases?project_id=1
 GET    /api/testcases?story_id=1
 GET    /api/testcases/:id
 GET    /api/testcases/:id/history
-POST   /api/testcases         { "story_id": 1, "name": "test_login", "class_name": "tests.TestAuth" }
-PUT    /api/testcases/:id
+POST   /api/testcases         { "story_id": 1, "name": "test_login", "class_name": "tests.TestAuth", "key": "test_login" }
+PUT    /api/testcases/:id     { "name": "...", "description": "...", "key": "..." }
 DELETE /api/testcases/:id
 ```
 
@@ -98,29 +96,18 @@ DELETE /api/runs/:id
 POST   /api/runs/upload       { "project_id": "demo", "xml": "<testsuite>...</testsuite>" }
 ```
 
-Accepts JUnit XML content. The server parses the XML and automatically matches results to existing test cases by `class_name` + `name`.
+Accepts JUnit XML content. The server parses the XML and automatically matches results to existing test cases using a 3-tier strategy: first by `key` (pytest function name), then by `class_name` + `name`, then auto-creates from classname parsing.
 
 ## CLI
-
-### Login
-
-```bash
-testops login --url http://localhost:3001 --key <api-key>
-```
-
-Saves configuration to `~/.testops/config.json`.
 
 ### Upload Results
 
 ```bash
 # Single file
-testops upload --project demo --file results.xml
+testops upload --project demo --file results.xml --url http://localhost:3001
 
 # All XML files in a directory
-testops upload --project demo --dir ./test-results
-
-# With inline credentials (no login needed)
-testops upload --project demo --file results.xml --url http://localhost:3001 --key <api-key>
+testops upload --project demo --dir ./test-results --url http://localhost:3001
 ```
 
 ## Feature & Story Mapping via Pytest Properties
@@ -196,8 +183,7 @@ When no `feature`/`story` properties are present, TestOps derives them from the 
 ## Typical Workflow
 
 1. Create a project via the API or web UI
-2. Define features, stories, and test cases
-3. Generate an API key for the project
-4. Run your tests with JUnit XML output (e.g. `pytest --junitxml=results.xml`)
-5. Upload results: `testops upload --project <slug> --file results.xml`
-6. Browse results at `http://localhost:3001`
+2. Define features, stories, and test cases (set `key` on each test case to match pytest function names)
+3. Run your tests with JUnit XML output (e.g. `pytest --junitxml=results.xml`)
+4. Upload results: `testops upload --project <slug> --file results.xml --url http://localhost:3001`
+5. Browse results at `http://localhost:3001`

@@ -12,6 +12,7 @@ export default function FeaturesPage() {
   const [refresh, setRefresh] = useState(0);
   const [selectedCase, setSelectedCase] = useState<TestCase | null>(null);
   const [description, setDescription] = useState("");
+  const [testKey, setTestKey] = useState("");
   const [saving, setSaving] = useState(false);
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -28,16 +29,22 @@ export default function FeaturesPage() {
   const handleSelectCase = async (tc: TestCase) => {
     // Save pending changes for previous case
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    if (selectedCase && description !== (selectedCase.description || "")) {
-      await apiFetch(`/testcases/${selectedCase.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ description }),
-      });
+    if (selectedCase) {
+      const updates: Record<string, string> = {};
+      if (description !== (selectedCase.description || "")) updates.description = description;
+      if (testKey !== (selectedCase.key || "")) updates.key = testKey;
+      if (Object.keys(updates).length > 0) {
+        await apiFetch(`/testcases/${selectedCase.id}`, {
+          method: "PUT",
+          body: JSON.stringify(updates),
+        });
+      }
     }
-    // Fetch latest from API to get up-to-date description
+    // Fetch latest from API to get up-to-date fields
     const fresh = await apiFetch<TestCase>(`/testcases/${tc.id}`);
     setSelectedCase(fresh);
     setDescription(fresh.description || "");
+    setTestKey(fresh.key || "");
   };
 
   const handleDescriptionChange = (value: string) => {
@@ -55,13 +62,33 @@ export default function FeaturesPage() {
     }, 600);
   };
 
+  const handleKeyChange = (value: string) => {
+    setTestKey(value);
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(async () => {
+      if (!selectedCase) return;
+      setSaving(true);
+      await apiFetch(`/testcases/${selectedCase.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ key: value }),
+      });
+      setSelectedCase((prev) => prev ? { ...prev, key: value } : null);
+      setSaving(false);
+    }, 600);
+  };
+
   const handleClosePane = () => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    if (selectedCase && description !== (selectedCase.description || "")) {
-      apiFetch(`/testcases/${selectedCase.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ description }),
-      });
+    if (selectedCase) {
+      const updates: Record<string, string> = {};
+      if (description !== (selectedCase.description || "")) updates.description = description;
+      if (testKey !== (selectedCase.key || "")) updates.key = testKey;
+      if (Object.keys(updates).length > 0) {
+        apiFetch(`/testcases/${selectedCase.id}`, {
+          method: "PUT",
+          body: JSON.stringify(updates),
+        });
+      }
     }
     setSelectedCase(null);
   };
@@ -203,6 +230,26 @@ export default function FeaturesPage() {
                     </span>
                   </div>
                 )}
+              </div>
+            </div>
+
+            {/* Pytest Key */}
+            <div style={{ padding: "12px 18px", borderBottom: "1px solid var(--border)" }}>
+              <div className="section-label" style={{ margin: 0, marginBottom: 6 }}>Pytest Key</div>
+              <input
+                className="input"
+                value={testKey}
+                onChange={(e) => handleKeyChange(e.target.value)}
+                placeholder="e.g. test_login_valid_credentials"
+                style={{
+                  width: "100%",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 12,
+                  padding: "8px 10px",
+                }}
+              />
+              <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 4 }}>
+                Matches pytest function name in JUnit XML results
               </div>
             </div>
 

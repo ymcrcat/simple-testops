@@ -5,7 +5,7 @@ import { apiFetch } from "@/lib/api";
 
 interface Feature { id: number; name: string; sort_order: number; }
 interface Story { id: number; feature_id: number; name: string; sort_order: number; priority: string | null; }
-export interface TestCase { id: number; story_id: number; name: string; status: string; class_name: string; sort_order: number; description: string | null; }
+export interface TestCase { id: number; story_id: number; name: string; status: string; class_name: string; sort_order: number; description: string | null; key: string | null; }
 
 type DragItem =
   | { type: "feature"; id: number; index: number }
