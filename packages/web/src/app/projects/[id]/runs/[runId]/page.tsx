@@ -25,6 +25,7 @@ interface TestResult {
   duration_ms: number;
   error_message: string | null;
   case_name: string | null;
+  case_class_name: string | null;
   test_case_id: number | null;
   feature_name: string | null;
   story_name: string | null;
@@ -98,22 +99,24 @@ function PriorityTag({ priority }: { priority: string | null }) {
 }
 
 function statusCounts(results: TestResult[]) {
-  let p = 0, f = 0, s = 0;
+  let p = 0, f = 0, s = 0, nr = 0;
   for (const r of results) {
     if (r.status === "passed") p++;
     else if (r.status === "failed" || r.status === "broken") f++;
     else if (r.status === "skipped") s++;
+    else if (r.status === "not_run") nr++;
   }
-  return { p, f, s };
+  return { p, f, s, nr };
 }
 
 function CountBadges({ results }: { results: TestResult[] }) {
-  const { p, f, s } = statusCounts(results);
+  const { p, f, s, nr } = statusCounts(results);
   return (
     <span className="mono" style={{ fontSize: 11, opacity: 0.7, marginLeft: 8 }}>
       {p > 0 && <span style={{ color: "var(--color-passed)" }}>{p}p</span>}
       {f > 0 && <>{p > 0 && " "}<span style={{ color: "var(--color-failed)" }}>{f}f</span></>}
       {s > 0 && <>{(p > 0 || f > 0) && " "}<span style={{ color: "var(--color-skipped)" }}>{s}s</span></>}
+      {nr > 0 && <>{(p > 0 || f > 0 || s > 0) && " "}<span style={{ color: "var(--text-muted)" }}>{nr}nr</span></>}
     </span>
   );
 }
@@ -301,7 +304,13 @@ export default function RunDetailPage() {
 
   useEffect(() => {
     apiFetch<Run>(`/runs/${params.runId}`).then(setRun);
-    apiFetch<TestResult[]>(`/runs/${params.runId}/results`).then(setResults);
+    apiFetch<TestResult[]>(`/runs/${params.runId}/coverage`).then((rows) => {
+      // Synthesize not_run status for test cases with no result
+      setResults(rows.map((r) => r.id == null
+        ? { ...r, id: -(r.test_case_id ?? 0), name: r.case_name ?? "", class_name: r.case_class_name ?? "", status: "not_run", duration_ms: 0, error_message: null }
+        : r
+      ));
+    });
   }, [params.runId]);
 
   const handleRename = async (name: string) => {
@@ -376,12 +385,15 @@ export default function RunDetailPage() {
   const groups = groupByFeatureStory(filtered);
   const errors = filtered.filter((r) => r.error_message);
 
+  const notRunCount = results.filter((r) => r.status === "not_run").length;
+
   const filterButtons = [
     { value: "", label: "All", count: results.length },
     { value: "passed", label: "Passed", count: results.filter((r) => r.status === "passed").length },
     { value: "failed", label: "Failed", count: results.filter((r) => r.status === "failed").length },
     { value: "skipped", label: "Skipped", count: results.filter((r) => r.status === "skipped").length },
     { value: "broken", label: "Broken", count: results.filter((r) => r.status === "broken").length },
+    { value: "not_run", label: "Not Run", count: notRunCount },
   ];
 
   return (
@@ -409,7 +421,7 @@ export default function RunDetailPage() {
 
       {/* Summary */}
       <div className="card-static animate-in" style={{ padding: "20px 24px", marginBottom: 28 }}>
-        <RunSummary total={run.total} passed={run.passed} failed={run.failed} skipped={run.skipped} size="lg" />
+        <RunSummary total={run.total} passed={run.passed} failed={run.failed} skipped={run.skipped} notRun={notRunCount} size="lg" />
       </div>
 
       {/* Filter */}
@@ -482,17 +494,18 @@ export default function RunDetailPage() {
                               key={r.id}
                               className="status-row"
                               data-status={r.status}
-                              onClick={() => handleSelectResult(r)}
+                              onClick={() => r.status !== "not_run" ? handleSelectResult(r) : undefined}
                               style={{
-                                cursor: "pointer",
+                                cursor: r.status === "not_run" ? "default" : "pointer",
                                 background: selectedResult?.id === r.id ? "var(--bg-elevated)" : undefined,
+                                opacity: r.status === "not_run" ? 0.45 : undefined,
                               }}
                             >
                               <td style={{ padding: 0, width: 4 }}></td>
                               <td style={{ fontWeight: 500, fontSize: 13 }}>{r.case_name || r.name}</td>
                               <td><StatusBadge status={r.status} /></td>
                               <td className="mono" style={{ color: "var(--text-secondary)", fontSize: 12 }}>
-                                {r.duration_ms}<span style={{ color: "var(--text-muted)" }}>ms</span>
+                                {r.status === "not_run" ? <span style={{ color: "var(--text-muted)" }}>&mdash;</span> : <>{r.duration_ms}<span style={{ color: "var(--text-muted)" }}>ms</span></>}
                               </td>
                             </tr>
                           ))}

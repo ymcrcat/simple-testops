@@ -87,6 +87,7 @@ GET    /api/runs?project_id=1
 GET    /api/runs/:id
 GET    /api/runs/:id/results
 GET    /api/runs/:id/results?status=failed
+GET    /api/runs/:id/coverage
 DELETE /api/runs/:id
 ```
 
@@ -97,6 +98,14 @@ POST   /api/runs/upload       { "project_id": "demo", "xml": "<testsuite>...</te
 ```
 
 Accepts JUnit XML content. The server parses the XML and automatically matches results to existing test cases using a 3-tier strategy: first by `key` (pytest function name), then by `class_name` + `name`, then auto-creates from classname parsing.
+
+### Run Coverage
+
+```
+GET    /api/runs/:id/coverage
+```
+
+Returns the full test spec for the project merged with results from this run. Every active test case is included — those without a result in the run have `null` status/id fields. Unmatched results (not linked to any test case) are also appended. Used by the run detail page to show test coverage gaps.
 
 ## CLI
 

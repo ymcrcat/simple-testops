@@ -5,11 +5,13 @@ interface RunSummaryProps {
   passed: number;
   failed: number;
   skipped: number;
+  notRun?: number;
   size?: "sm" | "md" | "lg";
 }
 
-export default function RunSummary({ total, passed, failed, skipped, size = "md" }: RunSummaryProps) {
-  const pct = total > 0 ? Math.round((passed / total) * 100) : 0;
+export default function RunSummary({ total, passed, failed, skipped, notRun, size = "md" }: RunSummaryProps) {
+  const specTotal = notRun != null ? total + notRun : total;
+  const pct = specTotal > 0 ? Math.round((passed / specTotal) * 100) : 0;
 
   const ringSize = size === "lg" ? 80 : size === "md" ? 56 : 40;
   const stroke = size === "lg" ? 5 : size === "md" ? 4 : 3;
@@ -72,7 +74,10 @@ export default function RunSummary({ total, passed, failed, skipped, size = "md"
         <span style={{ color: "var(--color-passed)" }}>{passed}<span style={{ color: "var(--text-muted)", marginLeft: 2 }}>p</span></span>
         <span style={{ color: "var(--color-failed)" }}>{failed}<span style={{ color: "var(--text-muted)", marginLeft: 2 }}>f</span></span>
         <span style={{ color: "var(--color-skipped)" }}>{skipped}<span style={{ color: "var(--text-muted)", marginLeft: 2 }}>s</span></span>
-        <span style={{ color: "var(--text-muted)" }}>{total}</span>
+        {notRun != null && notRun > 0 && (
+          <span style={{ color: "var(--text-muted)", opacity: 0.6 }}>{notRun}<span style={{ marginLeft: 2 }}>nr</span></span>
+        )}
+        <span style={{ color: "var(--text-muted)" }}>{specTotal}</span>
       </div>
     </div>
   );
