@@ -27,6 +27,7 @@ interface TestResult {
   case_name: string | null;
   case_class_name: string | null;
   test_case_id: number | null;
+  key: string | null;
   feature_name: string | null;
   story_name: string | null;
   story_priority: string | null;
@@ -299,7 +300,10 @@ export default function RunDetailPage() {
   const [caseDetail, setCaseDetail] = useState<TestCaseDetail | null>(null);
   const [caseDescription, setCaseDescription] = useState("");
   const [saving, setSaving] = useState(false);
+  const [keyValue, setKeyValue] = useState("");
+  const [keyStatus, setKeyStatus] = useState<"idle" | "saving" | "matched" | "no-match">("idle");
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const keyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -335,9 +339,12 @@ export default function RunDetailPage() {
         body: JSON.stringify({ description: caseDescription }),
       });
     }
+    if (keyTimeout.current) clearTimeout(keyTimeout.current);
     if (closingTimeout.current) { clearTimeout(closingTimeout.current); closingTimeout.current = null; }
     setSelectedResult(r);
     setPaneVisible(true);
+    setKeyValue(r.key || "");
+    setKeyStatus("idle");
     if (r.test_case_id) {
       const tc = await apiFetch<TestCaseDetail>(`/testcases/${r.test_case_id}`);
       setCaseDetail(tc);
@@ -363,8 +370,45 @@ export default function RunDetailPage() {
     }, 600);
   };
 
+  const handleKeyChange = (value: string) => {
+    setKeyValue(value);
+    setKeyStatus("saving");
+    if (keyTimeout.current) clearTimeout(keyTimeout.current);
+    keyTimeout.current = setTimeout(async () => {
+      if (!selectedResult) return;
+      const res = await apiFetch<{ matched: boolean; test_case_id: number | null }>(
+        `/results/${selectedResult.id}/match`,
+        { method: "PUT", body: JSON.stringify({ key: value }) }
+      );
+      if (res.matched && res.test_case_id) {
+        setKeyStatus("matched");
+        // Reload the result data to reflect the new link
+        const updated = await apiFetch<TestResult[]>(`/runs/${params.runId}/coverage`);
+        const rows = updated.map((r) => r.id == null
+          ? { ...r, id: -(r.test_case_id ?? 0), name: r.case_name ?? "", class_name: r.case_class_name ?? "", status: "not_run", duration_ms: 0, error_message: null }
+          : r
+        );
+        setResults(rows);
+        const updatedResult = rows.find((r) => r.id === selectedResult.id);
+        if (updatedResult) {
+          setSelectedResult(updatedResult);
+          if (updatedResult.test_case_id) {
+            const tc = await apiFetch<TestCaseDetail>(`/testcases/${updatedResult.test_case_id}`);
+            setCaseDetail(tc);
+            setCaseDescription(tc.description || "");
+          }
+        }
+      } else {
+        setKeyStatus(value.trim() ? "no-match" : "idle");
+        setCaseDetail(null);
+        setCaseDescription("");
+      }
+    }, 600);
+  };
+
   const handleClosePane = () => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    if (keyTimeout.current) clearTimeout(keyTimeout.current);
     if (caseDetail && caseDescription !== (caseDetail.description || "")) {
       apiFetch(`/testcases/${caseDetail.id}`, {
         method: "PUT",
@@ -664,10 +708,38 @@ export default function RunDetailPage() {
                   <span className="mono" style={{ color: "var(--text-secondary)" }}>{selectedResult.class_name}</span>
                 </div>
               )}
-              <div>
-                <span style={{ color: "var(--text-muted)" }}>Key </span>
-                <span className="mono" style={{ color: "var(--text-secondary)" }}>{selectedResult.name}</span>
+            </div>
+
+            {/* Editable Key */}
+            <div style={{ marginBottom: 16 }}>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                marginBottom: 6,
+              }}>
+                <div className="section-label" style={{ margin: 0 }}>Key</div>
+                {keyStatus === "saving" && (
+                  <span className="mono" style={{ fontSize: 10, color: "var(--text-muted)" }}>Matching...</span>
+                )}
+                {keyStatus === "matched" && (
+                  <span className="mono" style={{ fontSize: 10, color: "var(--color-passed)" }}>Matched</span>
+                )}
+                {keyStatus === "no-match" && (
+                  <span className="mono" style={{ fontSize: 10, color: "var(--color-skipped)" }}>No match</span>
+                )}
               </div>
+              <input
+                className="input mono"
+                value={keyValue}
+                onChange={(e) => handleKeyChange(e.target.value)}
+                placeholder="Enter key to match a test case..."
+                style={{
+                  width: "100%",
+                  fontSize: 12,
+                  padding: "6px 10px",
+                }}
+              />
             </div>
 
             {/* Error message */}
