@@ -590,6 +590,7 @@ export default function TestCaseTree({ projectId, selectedCaseId, onSelectCase }
                 <input
                   ref={editRef}
                   className="input"
+                  draggable={false}
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") cancelRename(); }}
@@ -662,6 +663,7 @@ export default function TestCaseTree({ projectId, selectedCaseId, onSelectCase }
                             <input
                               ref={editRef}
                               className="input"
+                              draggable={false}
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
                               onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") cancelRename(); }}
@@ -730,6 +732,7 @@ export default function TestCaseTree({ projectId, selectedCaseId, onSelectCase }
                                   <input
                                     ref={editRef}
                                     className="input"
+                                    draggable={false}
                                     value={editName}
                                     onChange={(e) => setEditName(e.target.value)}
                                     onKeyDown={(e) => { if (e.key === "Enter") commitRename(); if (e.key === "Escape") cancelRename(); }}

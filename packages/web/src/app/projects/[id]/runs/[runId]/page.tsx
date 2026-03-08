@@ -489,7 +489,7 @@ export default function RunDetailPage() {
                               }}
                             >
                               <td style={{ padding: 0, width: 4 }}></td>
-                              <td style={{ fontWeight: 500, fontSize: 13 }}>{r.name}</td>
+                              <td style={{ fontWeight: 500, fontSize: 13 }}>{r.case_name || r.name}</td>
                               <td><StatusBadge status={r.status} /></td>
                               <td className="mono" style={{ color: "var(--text-secondary)", fontSize: 12 }}>
                                 {r.duration_ms}<span style={{ color: "var(--text-muted)" }}>ms</span>
@@ -592,7 +592,7 @@ export default function RunDetailPage() {
               whiteSpace: "nowrap",
               flex: 1,
             }}>
-              {selectedResult.name}
+              {selectedResult.case_name || selectedResult.name}
             </div>
             <button
               onClick={handleClosePane}
@@ -651,6 +651,10 @@ export default function RunDetailPage() {
                   <span className="mono" style={{ color: "var(--text-secondary)" }}>{selectedResult.class_name}</span>
                 </div>
               )}
+              <div>
+                <span style={{ color: "var(--text-muted)" }}>Key </span>
+                <span className="mono" style={{ color: "var(--text-secondary)" }}>{selectedResult.name}</span>
+              </div>
             </div>
 
             {/* Error message */}
