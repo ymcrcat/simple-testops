@@ -78,12 +78,13 @@ export function matchTestCase(
   if (byKey) return byKey.id;
 
   // 2. Try exact match on class_name + name
+  //    For predefined test cases with null class_name, derive it as "Feature.Story"
   const exact = db
     .prepare(
       `SELECT tc.id FROM test_cases tc
        JOIN stories s ON tc.story_id = s.id
        JOIN features f ON s.feature_id = f.id
-       WHERE f.project_id = ? AND tc.class_name = ? AND tc.name = ? AND tc.status = 'active'`
+       WHERE f.project_id = ? AND COALESCE(tc.class_name, f.name || '.' || s.name) = ? AND tc.name = ? AND tc.status = 'active'`
     )
     .get(projectId, tc.classname, tc.name) as { id: number } | undefined;
 
