@@ -16,6 +16,25 @@ Base URL: \${BASE_URL}/api (default: http://localhost:3000/api)
 Content-Type: application/json
 Current project ID: ${projectId}
 
+## Projects
+
+### List projects
+GET /api/projects
+
+### Create project
+POST /api/projects
+Body: { "name": "Project Name", "slug": "optional-slug" }
+
+### Get project
+GET /api/projects/:id (id can be numeric ID or slug)
+
+### Update project
+PUT /api/projects/:id
+Body: { "name": "New Name" }
+
+### Delete project
+DELETE /api/projects/:id
+
 ## Features
 
 ### List features
@@ -49,7 +68,7 @@ GET /api/stories/:id
 
 ### Update story
 PUT /api/stories/:id
-Body: { "name": "New Name", "description": "New desc", "sort_order": 0 }
+Body: { "name": "New Name", "description": "New desc", "priority": "optional", "sort_order": 0 }
 
 ### Delete story
 DELETE /api/stories/:id
@@ -64,17 +83,48 @@ GET /api/testcases?story_id=:storyId
 
 ### Create test case
 POST /api/testcases
-Body: { "story_id": :storyId, "name": "Test Name", "class_name": "optional", "description": "optional" }
+Body: { "story_id": :storyId, "name": "Test Name", "class_name": "optional", "key": "optional (defaults to name)", "description": "optional" }
 
 ### Get test case
 GET /api/testcases/:id
 
 ### Update test case
 PUT /api/testcases/:id
-Body: { "name": "New Name", "class_name": "cls", "description": "Test desc", "status": "active|deprecated", "sort_order": 0 }
+Body: { "name": "New Name", "class_name": "cls", "key": "test_key", "description": "Test desc", "status": "active|deprecated", "sort_order": 0 }
 
 ### Delete test case
 DELETE /api/testcases/:id
+
+### Get test case history
+GET /api/testcases/:id/history
+Returns: last 50 results with run info
+
+## Runs
+
+### List runs
+GET /api/runs?project_id=${projectId}
+
+### Get run
+GET /api/runs/:id
+
+### Update run
+PUT /api/runs/:id
+Body: { "name": "New Name" }
+
+### Delete run
+DELETE /api/runs/:id
+
+### Get run results
+GET /api/runs/:id/results
+GET /api/runs/:id/results?status=failed (filter by status)
+
+### Get run coverage (full test spec vs results)
+GET /api/runs/:id/coverage
+
+### Upload JUnit XML results
+POST /api/runs/upload
+Body: { "project_id": ${projectId}, "xml": "<JUnit XML string>", "name": "optional run name" }
+Note: project_id can be numeric ID or slug. Parses XML and auto-matches results to test cases.
 
 ## Example: Create a full hierarchy
 
@@ -95,6 +145,11 @@ curl -X POST http://localhost:3000/api/stories \\
 curl -X POST http://localhost:3000/api/testcases \\
   -H "Content-Type: application/json" \\
   -d '{"story_id": 1, "name": "test_valid_credentials", "class_name": "auth.login"}'
+
+# 4. Upload test results
+curl -X POST http://localhost:3000/api/runs/upload \\
+  -H "Content-Type: application/json" \\
+  -d '{"project_id": ${projectId}, "xml": "<testsuites>...</testsuites>"}'
 \`\`\`
 `;
 }
