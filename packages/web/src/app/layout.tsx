@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TestOps",
+  title: "Simple TestOps",
   description: "Test management service",
   icons: { icon: "/favicon.svg" },
 };

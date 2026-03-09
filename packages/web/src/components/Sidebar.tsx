@@ -209,7 +209,7 @@ export default function Sidebar({ projectId, projectName }: SidebarProps) {
           letterSpacing: "-0.02em",
           color: "var(--text-primary)",
         }}>
-          TestOps
+          Simple TestOps
         </span>
       </Link>
 
