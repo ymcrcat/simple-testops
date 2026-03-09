@@ -8,7 +8,7 @@ export function GET(req: NextRequest) {
   if (projectId) {
     const cases = db()
       .prepare(
-        `SELECT tc.*, s.name as story_name, f.name as feature_name
+        `SELECT tc.*, s.name as story_name, s.priority as story_priority, f.name as feature_name
          FROM test_cases tc
          JOIN stories s ON tc.story_id = s.id
          JOIN features f ON s.feature_id = f.id
