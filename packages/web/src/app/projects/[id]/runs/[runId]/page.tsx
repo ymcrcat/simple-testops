@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import StatusBadge from "@/components/StatusBadge";
@@ -600,7 +601,7 @@ export default function RunDetailPage() {
       )}
 
       {/* Floating test case detail pane */}
-      {selectedResult && (
+      {selectedResult && createPortal(
         <>
         <div
           onClick={handleClosePane}
@@ -791,7 +792,8 @@ export default function RunDetailPage() {
             )}
           </div>
         </div>
-        </>
+        </>,
+        document.body
       )}
     </div>
   );

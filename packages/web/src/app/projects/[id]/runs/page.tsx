@@ -15,6 +15,7 @@ interface Run {
   passed: number;
   failed: number;
   skipped: number;
+  not_run: number;
 }
 
 function RunMenu({ run, onUpdate, onOpenChange }: { run: Run; onUpdate: () => void; onOpenChange?: (open: boolean) => void }) {
@@ -280,6 +281,7 @@ export default function RunsPage() {
                         passed={r.passed}
                         failed={r.failed}
                         skipped={r.skipped}
+                        notRun={r.not_run}
                         size="sm"
                       />
                     </div>

@@ -8,7 +8,7 @@ import RunSummary from "@/components/RunSummary";
 import StatusBadge from "@/components/StatusBadge";
 
 interface Project { id: number; name: string; slug: string; }
-interface Run { id: number; name: string; started_at: string; total: number; passed: number; failed: number; skipped: number; }
+interface Run { id: number; name: string; started_at: string; total: number; passed: number; failed: number; skipped: number; not_run: number; }
 
 function ProjectMenu({ project, onRename, onDelete }: { project: Project; onRename: (name: string) => void; onDelete: () => void }) {
   const [open, setOpen] = useState(false);
@@ -272,7 +272,7 @@ export default function ProjectOverview() {
                   {latest.started_at}
                 </div>
               </div>
-              <RunSummary total={latest.total} passed={latest.passed} failed={latest.failed} skipped={latest.skipped} size="md" />
+              <RunSummary total={latest.total} passed={latest.passed} failed={latest.failed} skipped={latest.skipped} notRun={latest.not_run} size="md" />
             </div>
           </Link>
         </div>
