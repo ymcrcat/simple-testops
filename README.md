@@ -109,6 +109,16 @@ Returns the full test spec for the project merged with results from this run. Ev
 
 ## CLI
 
+### Build & Link
+
+```bash
+cd packages/cli
+npm run build
+npm link
+```
+
+This compiles the TypeScript source and makes the `testops` command available globally on your system.
+
 ### Upload Results
 
 ```bash
