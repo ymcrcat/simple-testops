@@ -8,3 +8,4 @@ dist/
 .testops/
 *.tsbuildinfo
 .claude
+tests/results.xml
