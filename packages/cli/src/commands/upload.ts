@@ -5,7 +5,8 @@ import https from "https";
 
 function post(serverUrl: string, body: object): Promise<any> {
   return new Promise((resolve, reject) => {
-    const parsed = new URL(serverUrl + "/api/runs/upload");
+    const base = serverUrl.replace(/\/+$/, "");
+    const parsed = new URL(base + "/api/runs/upload");
     const transport = parsed.protocol === "https:" ? https : http;
     const payload = JSON.stringify(body);
 
@@ -19,6 +20,7 @@ function post(serverUrl: string, body: object): Promise<any> {
           "Content-Type": "application/json",
           "Content-Length": Buffer.byteLength(payload),
         },
+        rejectUnauthorized: false,
       },
       (res) => {
         let data = "";
@@ -27,7 +29,11 @@ function post(serverUrl: string, body: object): Promise<any> {
           if (res.statusCode && res.statusCode >= 400) {
             reject(new Error(`HTTP ${res.statusCode}: ${data}`));
           } else {
-            resolve(JSON.parse(data));
+            try {
+              resolve(JSON.parse(data));
+            } catch {
+              reject(new Error(`Invalid JSON response (HTTP ${res.statusCode}): ${data}`));
+            }
           }
         });
       }
