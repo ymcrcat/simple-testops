@@ -12,7 +12,7 @@ interface SidebarProps {
 function getApiSkill(projectId: string): string {
   return `# TestOps API Skill
 
-Base URL: \${BASE_URL}/api (default: http://localhost:3000/api)
+Base URL: \${BASE_URL}/api (default: http://localhost:3001/api)
 Content-Type: application/json
 Current project ID: ${projectId}
 
@@ -126,28 +126,35 @@ POST /api/runs/upload
 Body: { "project_id": ${projectId}, "xml": "<JUnit XML string>", "name": "optional run name" }
 Note: project_id can be numeric ID or slug. Parses XML and auto-matches results to test cases.
 
+## Results
+
+### Re-match a result to a test case
+PUT /api/results/:id/match
+Body: { "key": "test_case_key" }
+Sets or clears the test_case_id on a test result by matching the key to an existing test case in the same project. Send empty key to unlink.
+
 ## Example: Create a full hierarchy
 
 \`\`\`bash
 # 1. Create a feature
-curl -X POST http://localhost:3000/api/features \\
+curl -X POST http://localhost:3001/api/features \\
   -H "Content-Type: application/json" \\
   -d '{"project_id": ${projectId}, "name": "Authentication"}'
 # Returns: { "id": 1, "name": "Authentication", ... }
 
 # 2. Create a story under the feature
-curl -X POST http://localhost:3000/api/stories \\
+curl -X POST http://localhost:3001/api/stories \\
   -H "Content-Type: application/json" \\
   -d '{"feature_id": 1, "name": "Login"}'
 # Returns: { "id": 1, "name": "Login", ... }
 
 # 3. Create test cases under the story
-curl -X POST http://localhost:3000/api/testcases \\
+curl -X POST http://localhost:3001/api/testcases \\
   -H "Content-Type: application/json" \\
   -d '{"story_id": 1, "name": "test_valid_credentials", "class_name": "auth.login"}'
 
 # 4. Upload test results
-curl -X POST http://localhost:3000/api/runs/upload \\
+curl -X POST http://localhost:3001/api/runs/upload \\
   -H "Content-Type: application/json" \\
   -d '{"project_id": ${projectId}, "xml": "<testsuites>...</testsuites>"}'
 \`\`\`

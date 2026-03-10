@@ -27,7 +27,7 @@ function getOrCreateStory(featureId: number, name: string): number {
   return Number(result.lastInsertRowid);
 }
 
-function getOrCreateTestCase(storyId: number, name: string, className: string): number {
+function getOrCreateTestCase(storyId: number, name: string, className: string, key: string): number {
   const db = getDb();
   const existing = db
     .prepare("SELECT id FROM test_cases WHERE story_id = ? AND name = ? AND class_name = ? AND status = 'active'")
@@ -35,8 +35,8 @@ function getOrCreateTestCase(storyId: number, name: string, className: string): 
   if (existing) return existing.id;
 
   const result = db
-    .prepare("INSERT INTO test_cases (story_id, name, class_name) VALUES (?, ?, ?)")
-    .run(storyId, name, className);
+    .prepare("INSERT INTO test_cases (story_id, name, class_name, key) VALUES (?, ?, ?, ?)")
+    .run(storyId, name, className, key);
   return Number(result.lastInsertRowid);
 }
 
@@ -73,20 +73,20 @@ export function matchTestCase(
        JOIN features f ON s.feature_id = f.id
        WHERE f.project_id = ? AND tc.key = ? AND tc.status = 'active'`
     )
-    .get(projectId, tc.name) as { id: number } | undefined;
+    .get(projectId, tc.key) as { id: number } | undefined;
 
   if (byKey) return byKey.id;
 
-  // 2. Try exact match on class_name + name
+  // 2. Try exact match on class_name + key (function name)
   //    For predefined test cases with null class_name, derive it as "Feature.Story"
   const exact = db
     .prepare(
       `SELECT tc.id FROM test_cases tc
        JOIN stories s ON tc.story_id = s.id
        JOIN features f ON s.feature_id = f.id
-       WHERE f.project_id = ? AND COALESCE(tc.class_name, f.name || '.' || s.name) = ? AND tc.name = ? AND tc.status = 'active'`
+       WHERE f.project_id = ? AND COALESCE(tc.class_name, f.name || '.' || s.name) = ? AND COALESCE(tc.key, tc.name) = ? AND tc.status = 'active'`
     )
-    .get(projectId, tc.classname, tc.name) as { id: number } | undefined;
+    .get(projectId, tc.classname, tc.key) as { id: number } | undefined;
 
   if (exact) return exact.id;
 
@@ -96,5 +96,5 @@ export function matchTestCase(
     : parseClassname(tc.classname);
   const featureId = getOrCreateFeature(projectId, featureName);
   const storyId = getOrCreateStory(featureId, storyName);
-  return getOrCreateTestCase(storyId, tc.name, tc.classname);
+  return getOrCreateTestCase(storyId, tc.name, tc.classname, tc.key);
 }

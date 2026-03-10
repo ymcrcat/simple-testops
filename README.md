@@ -129,9 +129,19 @@ testops upload --project demo --file results.xml --url http://localhost:3001
 testops upload --project demo --dir ./test-results --url http://localhost:3001
 ```
 
-## Feature & Story Mapping via Pytest Properties
+## Test Mapping via Pytest Properties
 
-TestOps maps test results to features and stories. You can control this mapping by embedding `feature` and `story` properties in your JUnit XML output.
+TestOps maps test results to features, stories, and test cases. You can control this mapping by embedding properties in your JUnit XML output.
+
+### Supported Properties
+
+| Property | Description | Fallback |
+|---|---|---|
+| `feature` | Feature name | Derived from `classname` (second-to-last segment) |
+| `story` | Story name | Derived from `classname` (last segment) |
+| `test_case` | Human-readable test case name | Uses the function name from `name` attribute |
+
+When `test_case` is provided, the function name (XML `name` attribute) is stored as the matching key, and the property value becomes the display name.
 
 ### Setup
 
@@ -143,18 +153,19 @@ import pytest
 def pytest_configure(config):
     config.addinivalue_line("markers", "feature(name): assign test to a feature")
     config.addinivalue_line("markers", "story(name): assign test to a story")
+    config.addinivalue_line("markers", "test_case(name): human-readable test case name")
 
 @pytest.hookimpl(tryfirst=True)
 def pytest_runtest_makereport(item, call):
-    """Inject feature/story markers as JUnit XML properties."""
+    """Inject feature/story/test_case markers as JUnit XML properties."""
     if call.when == "call":
-        for marker_name in ("feature", "story"):
+        for marker_name in ("feature", "story", "test_case"):
             marker = item.get_closest_marker(marker_name)
             if marker and marker.args:
                 item.user_properties.append((marker_name, marker.args[0]))
 ```
 
-2. Annotate your tests:
+2. Annotate your tests — `feature` and `story` on the class, `test_case` on each method:
 
 ```python
 import pytest
@@ -162,23 +173,26 @@ import pytest
 @pytest.mark.feature("Authentication")
 @pytest.mark.story("Login")
 class TestLogin:
+    @pytest.mark.test_case("Login with valid credentials")
     def test_login_valid_credentials(self):
         ...
 
+    @pytest.mark.test_case("Login with invalid password")
     def test_login_invalid_password(self):
         ...
 
 @pytest.mark.feature("Authentication")
 @pytest.mark.story("Registration")
 class TestRegister:
+    @pytest.mark.test_case("Register a new user")
     def test_register_new_user(self):
         ...
 ```
 
-3. Run with JUnit XML output:
+3. Run with JUnit XML output (use `xunit1` so properties appear inside `<testcase>`):
 
 ```bash
-pytest --junitxml=results.xml
+pytest --junitxml=results.xml -o junit_family=xunit1
 ```
 
 This produces `<properties>` elements inside each `<testcase>`:
@@ -188,6 +202,7 @@ This produces `<properties>` elements inside each `<testcase>`:
   <properties>
     <property name="feature" value="Authentication"/>
     <property name="story" value="Login"/>
+    <property name="test_case" value="Login with valid credentials"/>
   </properties>
 </testcase>
 ```
@@ -198,6 +213,8 @@ When no `feature`/`story` properties are present, TestOps derives them from the 
 
 - `tests.test_auth.TestLogin` → feature=`test_auth`, story=`TestLogin`
 - Last segment = story, second-to-last = feature
+
+When no `test_case` property is present, the function name (`name` attribute) is used as both the display name and the key.
 
 ## Typical Workflow
 

@@ -1,0 +1,10 @@
+[tool.pytest.ini_options]
+markers = [
+    "smoke: health check",
+    "crud: CRUD operations",
+    "upload: JUnit XML upload",
+    "cascade: cascade delete behavior",
+    "edge: error handling and edge cases",
+]
+testpaths = ["."]
+addopts = "--junitxml=results.xml -o junit_family=xunit1"
