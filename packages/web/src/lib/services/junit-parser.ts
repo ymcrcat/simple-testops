@@ -2,6 +2,7 @@ import { XMLParser } from "fast-xml-parser";
 
 export interface JUnitTestCase {
   name: string;
+  key: string;
   classname: string;
   time: number;
   status: "passed" | "failed" | "skipped" | "broken";
@@ -65,20 +66,24 @@ export function parseJUnitXML(xml: string): JUnitResult {
         status = "skipped";
       }
 
-      // Extract feature/story from <properties>
+      // Extract feature/story/test_case_name from <properties>
       let feature: string | undefined;
       let story: string | undefined;
+      let displayName: string | undefined;
       const props = tc.properties?.property;
       if (props) {
         const propList = Array.isArray(props) ? props : [props];
         for (const p of propList) {
           if (p["@_name"] === "feature") feature = p["@_value"];
           if (p["@_name"] === "story") story = p["@_value"];
+          if (p["@_name"] === "test_case") displayName = p["@_value"];
         }
       }
 
+      const funcName = tc["@_name"] || "unknown";
       tests.push({
-        name: tc["@_name"] || "unknown",
+        name: displayName || funcName,
+        key: funcName,
         classname: tc["@_classname"] || "",
         time: parseFloat(tc["@_time"] || "0"),
         status,
