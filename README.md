@@ -165,7 +165,7 @@ def pytest_runtest_makereport(item, call):
                 item.user_properties.append((marker_name, marker.args[0]))
 ```
 
-2. Annotate your tests:
+2. Annotate your tests — `feature` and `story` on the class, `test_case` on each method:
 
 ```python
 import pytest
@@ -189,10 +189,10 @@ class TestRegister:
         ...
 ```
 
-3. Run with JUnit XML output:
+3. Run with JUnit XML output (use `xunit1` so properties appear inside `<testcase>`):
 
 ```bash
-pytest --junitxml=results.xml
+pytest --junitxml=results.xml -o junit_family=xunit1
 ```
 
 This produces `<properties>` elements inside each `<testcase>`:
