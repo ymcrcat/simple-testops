@@ -8,4 +8,8 @@ dist/
 .testops/
 *.tsbuildinfo
 .claude
+__pycache__/
+*.pyc
+tests/.venv/
+tests/.pytest_cache/
 tests/results.xml
