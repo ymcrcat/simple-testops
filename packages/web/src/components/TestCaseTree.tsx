@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
+import { priorityColors } from "@/lib/constants";
 
 interface Feature { id: number; name: string; sort_order: number; }
 interface Story { id: number; feature_id: number; name: string; sort_order: number; priority: string | null; }
@@ -196,12 +197,6 @@ function getInsertIndex(fromIndex: number, toIndex: number, position: "before" |
   if (fromIndex < target) return target - 1;
   return target;
 }
-
-const priorityColors: Record<string, { bg: string; text: string }> = {
-  P0: { bg: "var(--color-failed-glow)", text: "var(--color-failed)" },
-  P1: { bg: "var(--color-skipped-glow)", text: "var(--color-skipped)" },
-  P2: { bg: "var(--bg-elevated)", text: "var(--text-muted)" },
-};
 
 function PriorityBadge({ story, onUpdate }: { story: Story; onUpdate: (priority: string | null) => void }) {
   const [open, setOpen] = useState(false);

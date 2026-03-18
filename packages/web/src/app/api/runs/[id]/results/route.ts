@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { apiHandler } from "@/lib/api-helpers";
+import { recalcRunTotals } from "@/lib/services/run-stats";
+import type { RunRow, TestCaseRow } from "@/lib/types";
 
 /**
  * POST /api/runs/:id/results
  * Body: { test_case_id: number, status: 'passed' | 'failed' | 'skipped' }
  * Manually records a result for a test case in this run.
  */
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const run = db().prepare("SELECT * FROM test_runs WHERE id = ?").get(params.id) as any;
+export const POST = apiHandler(async (req: NextRequest, { params }: { params: { id: string } }) => {
+  const run = db().prepare("SELECT * FROM test_runs WHERE id = ?").get(params.id) as RunRow | undefined;
   if (!run) return NextResponse.json({ error: "Run not found" }, { status: 404 });
 
   const { test_case_id, status } = await req.json();
@@ -21,13 +24,13 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     JOIN stories s ON tc.story_id = s.id
     JOIN features f ON s.feature_id = f.id
     WHERE tc.id = ? AND f.project_id = ? AND tc.status = 'active'
-  `).get(test_case_id, run.project_id) as any;
+  `).get(test_case_id, run.project_id) as Pick<TestCaseRow, "id" | "name" | "class_name" | "key"> | undefined;
   if (!tc) return NextResponse.json({ error: "Test case not found in this project" }, { status: 404 });
 
   // Check if a result already exists for this test case in this run
   const existing = db().prepare(
     "SELECT id FROM test_results WHERE run_id = ? AND test_case_id = ?"
-  ).get(params.id, test_case_id) as any;
+  ).get(params.id, test_case_id) as { id: number } | undefined;
   if (existing) {
     return NextResponse.json({ error: "Result already exists for this test case in this run" }, { status: 409 });
   }
@@ -36,28 +39,14 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const result = db().prepare(`
     INSERT INTO test_results (run_id, test_case_id, name, class_name, status, duration_ms)
     VALUES (?, ?, ?, ?, ?, 0)
-  `).run(params.id, test_case_id, tc.name, tc.class_name || "", status, );
+  `).run(params.id, test_case_id, tc.name, tc.class_name || "", status);
 
   // Recalculate run totals
   recalcRunTotals(Number(params.id));
 
   const created = db().prepare("SELECT * FROM test_results WHERE id = ?").get(result.lastInsertRowid);
   return NextResponse.json(created, { status: 201 });
-}
-
-function recalcRunTotals(runId: number) {
-  const counts = db().prepare(`
-    SELECT
-      COUNT(*) as total,
-      SUM(CASE WHEN status = 'passed' THEN 1 ELSE 0 END) as passed,
-      SUM(CASE WHEN status = 'failed' OR status = 'broken' THEN 1 ELSE 0 END) as failed,
-      SUM(CASE WHEN status = 'skipped' THEN 1 ELSE 0 END) as skipped
-    FROM test_results WHERE run_id = ?
-  `).get(runId) as any;
-  db().prepare(`
-    UPDATE test_runs SET total = ?, passed = ?, failed = ?, skipped = ? WHERE id = ?
-  `).run(counts.total, counts.passed, counts.failed, counts.skipped, runId);
-}
+});
 
 export function GET(req: NextRequest, { params }: { params: { id: string } }) {
   const status = req.nextUrl.searchParams.get("status");
@@ -68,7 +57,7 @@ export function GET(req: NextRequest, { params }: { params: { id: string } }) {
     LEFT JOIN stories s ON tc.story_id = s.id
     LEFT JOIN features f ON s.feature_id = f.id
     WHERE tr.run_id = ?`;
-  const queryParams: any[] = [params.id];
+  const queryParams: (string | number)[] = [params.id];
   if (status) {
     query += " AND tr.status = ?";
     queryParams.push(status);

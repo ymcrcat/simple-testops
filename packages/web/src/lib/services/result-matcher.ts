@@ -1,4 +1,4 @@
-import { getDb } from "../db/connection";
+import { db as getDb } from "../db";
 import { JUnitTestCase } from "./junit-parser";
 
 function getOrCreateFeature(projectId: number, name: string): number {

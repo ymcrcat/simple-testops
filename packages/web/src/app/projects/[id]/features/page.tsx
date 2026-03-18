@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import TestCaseTree, { TestCase } from "@/components/TestCaseTree";
+import { PlusIcon, CloseIcon } from "@/components/icons";
 
 export default function FeaturesPage() {
   const params = useParams();
@@ -125,9 +126,7 @@ export default function FeaturesPage() {
               style={{ maxWidth: 320, width: "100%" }}
             />
             <button className="btn btn-primary" onClick={createFeature}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                <path d="M12 5v14M5 12h14" />
-              </svg>
+              <PlusIcon />
               Add Feature
             </button>
           </div>
@@ -190,26 +189,10 @@ export default function FeaturesPage() {
               </div>
               <button
                 onClick={handleClosePane}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  color: "var(--text-muted)",
-                  padding: "2px",
-                  display: "flex",
-                  alignItems: "center",
-                  borderRadius: "var(--radius-sm)",
-                  transition: "color 0.15s",
-                  flexShrink: 0,
-                  marginLeft: 8,
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.color = "var(--text-primary)"; }}
-                onMouseLeave={(e) => { e.currentTarget.style.color = "var(--text-muted)"; }}
+                className="btn-close-ghost"
+                style={{ marginLeft: 8 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
+                <CloseIcon />
               </button>
             </div>
 

@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { apiHandler } from "@/lib/api-helpers";
 import { parseJUnitXML } from "@/lib/services/junit-parser";
 import { matchTestCase } from "@/lib/services/result-matcher";
+import type { ProjectRow } from "@/lib/types";
 
-export async function POST(req: NextRequest) {
+export const POST = apiHandler(async (req: NextRequest) => {
   const { project_id, xml, name } = await req.json();
 
   if (!project_id || !xml) {
@@ -11,7 +13,7 @@ export async function POST(req: NextRequest) {
   }
 
   const d = db();
-  const project = d.prepare("SELECT * FROM projects WHERE id = ? OR slug = ?").get(project_id, project_id) as any;
+  const project = d.prepare("SELECT * FROM projects WHERE id = ? OR slug = ?").get(project_id, project_id) as ProjectRow | undefined;
   if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
 
   const parsed = parseJUnitXML(xml);
@@ -51,4 +53,4 @@ export async function POST(req: NextRequest) {
 
   const run = d.prepare("SELECT * FROM test_runs WHERE id = ?").get(runId);
   return NextResponse.json(run, { status: 201 });
-}
+});

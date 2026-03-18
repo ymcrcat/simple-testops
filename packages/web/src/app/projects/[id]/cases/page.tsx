@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { apiFetch } from "@/lib/api";
+import { priorityColors } from "@/lib/constants";
 import StatusBadge from "@/components/StatusBadge";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
+import EmptyState from "@/components/EmptyState";
 
 interface TestCase {
   id: number;
@@ -14,12 +17,6 @@ interface TestCase {
   story_priority: string | null;
   status: string;
 }
-
-const priorityColors: Record<string, { bg: string; text: string }> = {
-  P0: { bg: "var(--color-failed-glow)", text: "var(--color-failed)" },
-  P1: { bg: "var(--color-skipped-glow)", text: "var(--color-skipped)" },
-  P2: { bg: "var(--bg-elevated)", text: "var(--text-muted)" },
-};
 
 const PRIORITY_OPTIONS = ["P0", "P1", "P2"];
 
@@ -92,16 +89,9 @@ export default function CasesPage() {
       </div>
 
       {loading ? (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="skeleton" style={{ height: 48 }} />
-          ))}
-        </div>
+        <LoadingSkeleton count={5} height={48} gap={4} />
       ) : filtered.length === 0 ? (
-        <div className="empty-state">
-          <div className="icon">&#9744;</div>
-          <p>{cases.length === 0 ? "No test cases defined. Create features and stories first, then add test cases." : "No test cases match the selected priority filter."}</p>
-        </div>
+        <EmptyState icon="&#9744;" message={cases.length === 0 ? "No test cases defined. Create features and stories first, then add test cases." : "No test cases match the selected priority filter."} />
       ) : (
         <>
         <div className="card-static animate-in desktop-table" style={{ overflow: "hidden" }}>

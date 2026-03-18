@@ -529,3 +529,86 @@ a { color: inherit; text-decoration: none; }
 div:has(> .delete-btn):hover > .delete-btn {
   opacity: 1 !important;
 }
+
+/* Icon button with ghost hover */
+.btn-icon-ghost {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  transition: all 0.15s;
+}
+
+.btn-icon-ghost:hover {
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+}
+
+/* Dropdown panel */
+.dropdown-panel {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  width: 200px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-active);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 50;
+  overflow: hidden;
+  animation: fadeIn 0.15s ease-out;
+}
+
+/* Dropdown item */
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-family: var(--font-body);
+  transition: all 0.1s;
+  text-align: left;
+}
+
+.dropdown-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.dropdown-item-danger {
+  color: var(--color-failed);
+}
+
+.dropdown-item-danger:hover {
+  background: var(--color-failed-glow);
+  color: var(--color-failed);
+}
+
+/* Close button ghost */
+.btn-close-ghost {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-close-ghost:hover {
+  color: var(--text-primary);
+}
