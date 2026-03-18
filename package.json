@@ -4,6 +4,7 @@
   "scripts": {
     "build": "npm run build --workspaces",
     "dev": "npm run dev -w @testops/web",
+    "package:web": "bash scripts/package-web.sh",
     "start": "npm run start -w @testops/web",
     "test": "npm run test --workspaces"
   },
