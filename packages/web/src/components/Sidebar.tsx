@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -172,21 +173,11 @@ const navItems = [
 export default function Sidebar({ projectId, projectName }: SidebarProps) {
   const pathname = usePathname();
   const [copied, setCopied] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const base = `/projects/${projectId}`;
 
-  return (
-    <nav style={{
-      width: 240,
-      background: "var(--bg-surface)",
-      borderRight: "1px solid var(--border)",
-      display: "flex",
-      flexDirection: "column",
-      height: "100vh",
-      position: "sticky",
-      top: 0,
-      overflow: "hidden",
-    }}>
-      {/* Logo */}
+  const sidebarContent = (
+    <>
       <Link href="/" style={{
         display: "flex",
         alignItems: "center",
@@ -221,7 +212,6 @@ export default function Sidebar({ projectId, projectName }: SidebarProps) {
         </span>
       </Link>
 
-      {/* Project name */}
       <div style={{
         padding: "16px 20px 8px",
       }}>
@@ -239,7 +229,6 @@ export default function Sidebar({ projectId, projectName }: SidebarProps) {
         </div>
       </div>
 
-      {/* Navigation */}
       <div style={{ padding: "12px 10px", flex: 1 }}>
         {navItems.map((item) => {
           const href = `${base}${item.suffix}`;
@@ -251,6 +240,7 @@ export default function Sidebar({ projectId, projectName }: SidebarProps) {
             <Link
               key={item.suffix}
               href={href}
+              onClick={() => setMobileOpen(false)}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -284,7 +274,6 @@ export default function Sidebar({ projectId, projectName }: SidebarProps) {
         })}
       </div>
 
-      {/* Bottom */}
       <div style={{
         padding: "12px 20px 16px",
         borderTop: "1px solid var(--border)",
@@ -327,6 +316,7 @@ export default function Sidebar({ projectId, projectName }: SidebarProps) {
         </button>
         <Link
           href="/"
+          onClick={() => setMobileOpen(false)}
           style={{
             fontSize: 12,
             color: "var(--text-muted)",
@@ -342,6 +332,58 @@ export default function Sidebar({ projectId, projectName }: SidebarProps) {
           All Projects
         </Link>
       </div>
-    </nav>
+    </>
+  );
+
+  return (
+    <>
+      <div className="mobile-topbar mobile-only">
+        <button
+          className="btn btn-ghost"
+          onClick={() => setMobileOpen(true)}
+          style={{ padding: "8px 12px" }}
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M3 6h18M3 12h18M3 18h18" />
+          </svg>
+          Menu
+        </button>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div className="section-label" style={{ marginBottom: 4 }}>Project</div>
+          <div style={{
+            fontFamily: "var(--font-display)",
+            fontWeight: 700,
+            fontSize: 16,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}>
+            {projectName || `#${projectId}`}
+          </div>
+        </div>
+      </div>
+
+      <nav className="sidebar-desktop desktop-only">
+        {sidebarContent}
+      </nav>
+
+      {mobileOpen && typeof document !== "undefined" && createPortal(
+        <>
+          <div className="mobile-drawer-overlay" onClick={() => setMobileOpen(false)} />
+          <nav className="mobile-drawer">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 16px 8px" }}>
+              <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: 18 }}>Navigation</div>
+              <button className="btn btn-ghost" onClick={() => setMobileOpen(false)} style={{ padding: "8px 12px" }}>
+                Close
+              </button>
+            </div>
+            <div className="mobile-drawer-scroll">
+              {sidebarContent}
+            </div>
+          </nav>
+        </>,
+        document.body
+      )}
+    </>
   );
 }

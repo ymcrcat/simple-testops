@@ -23,7 +23,7 @@ export default function RunSummary({ total, passed, failed, skipped, notRun, siz
   const fontSize = size === "lg" ? 18 : size === "md" ? 14 : 11;
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: size === "lg" ? 20 : 14 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: size === "lg" ? 20 : 14, flexWrap: "wrap" }}>
       <div style={{ position: "relative", width: ringSize, height: ringSize }}>
         <svg width={ringSize} height={ringSize} style={{ transform: "rotate(-90deg)" }}>
           <circle

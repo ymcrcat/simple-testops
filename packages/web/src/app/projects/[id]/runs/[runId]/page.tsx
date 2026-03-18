@@ -489,7 +489,7 @@ export default function RunDetailPage() {
     <div>
       {/* Header */}
       <div style={{ marginBottom: 28 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div className="responsive-row" style={{ alignItems: "flex-start" }}>
           <h1 style={{
             fontFamily: "var(--font-display)",
             fontSize: 24,
@@ -501,7 +501,7 @@ export default function RunDetailPage() {
           </h1>
           <RunMenu run={run} onRename={handleRename} onDelete={handleDelete} />
         </div>
-        <div className="mono" style={{ color: "var(--text-muted)", fontSize: 12, display: "flex", gap: 16 }}>
+        <div className="wrap-row mono" style={{ color: "var(--text-muted)", fontSize: 12, gap: 16 }}>
           <span>Started {run.started_at}</span>
           <span style={{ color: "var(--border-active)" }}>|</span>
           <span>Finished {run.finished_at}</span>
@@ -509,12 +509,12 @@ export default function RunDetailPage() {
       </div>
 
       {/* Summary */}
-      <div className="card-static animate-in" style={{ padding: "20px 24px", marginBottom: 28 }}>
+      <div className="card-static animate-in" style={{ padding: "20px 16px", marginBottom: 28 }}>
         <RunSummary total={run.total} passed={run.passed} failed={run.failed} skipped={run.skipped} notRun={notRunCount} size="lg" />
       </div>
 
       {/* Filter */}
-      <div className="animate-in stagger-1" style={{ display: "flex", gap: 6, marginBottom: 20 }}>
+      <div className="animate-in stagger-1 wrap-row" style={{ gap: 6, marginBottom: 20 }}>
         {filterButtons.map((f) => (
           <button
             key={f.value}
@@ -576,6 +576,7 @@ export default function RunDetailPage() {
                       <CountBadges results={story.results} />
                     </summary>
                     <div className="card-static" style={{ overflow: "hidden", marginTop: 4, marginBottom: 4 }}>
+                      <div className="table-scroll">
                       <table className="data-table">
                         <tbody>
                           {story.results.map((r) => (
@@ -600,6 +601,7 @@ export default function RunDetailPage() {
                           ))}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   </details>
                 ))}
@@ -664,7 +666,7 @@ export default function RunDetailPage() {
             top: 0,
             right: 0,
             bottom: 0,
-            width: 400,
+            width: "min(400px, 100vw)",
             background: "var(--bg-surface)",
             borderLeft: "1px solid var(--border)",
             boxShadow: "-8px 0 32px rgba(0,0,0,0.3)",

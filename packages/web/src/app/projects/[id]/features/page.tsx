@@ -101,7 +101,7 @@ export default function FeaturesPage() {
   }, []);
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 64px)" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       <div style={{ flexShrink: 0 }}>
         <h1 style={{
           fontFamily: "var(--font-display)",
@@ -115,14 +115,14 @@ export default function FeaturesPage() {
 
         {/* Add feature */}
         <div className="animate-in" style={{ marginBottom: 28 }}>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div className="responsive-input-row">
             <input
               className="input"
               value={featureName}
               onChange={(e) => setFeatureName(e.target.value)}
               placeholder="New feature name..."
               onKeyDown={(e) => e.key === "Enter" && createFeature()}
-              style={{ maxWidth: 320 }}
+              style={{ maxWidth: 320, width: "100%" }}
             />
             <button className="btn btn-primary" onClick={createFeature}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -135,15 +135,17 @@ export default function FeaturesPage() {
       </div>
 
       {/* Two-panel layout */}
-      <div style={{ display: "flex", gap: 16, flex: 1, minHeight: 0 }}>
+      <div style={{ display: "flex", gap: 16, flex: 1, minHeight: 0, flexWrap: "wrap" }}>
         {/* Tree */}
         <div
           className="card-static animate-in stagger-1"
           style={{
             padding: "8px 12px",
             flex: 1,
+            width: "100%",
             minWidth: 0,
             overflowY: "auto",
+            minHeight: 320,
           }}
         >
           <TestCaseTree
@@ -159,7 +161,8 @@ export default function FeaturesPage() {
           <div
             className="card-static animate-in"
             style={{
-              width: 360,
+              width: "100%",
+              maxWidth: 360,
               flexShrink: 0,
               padding: 0,
               overflowY: "auto",

@@ -204,7 +204,7 @@ export default function RunsPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div className="responsive-row" style={{ marginBottom: 24 }}>
         <h1 style={{
           fontFamily: "var(--font-display)",
           fontSize: 24,
@@ -261,7 +261,7 @@ export default function RunsPage() {
                     borderRadius: "inherit",
                   }} />
 
-                  <div style={{ position: "relative", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div className="responsive-row" style={{ position: "relative" }}>
                     <div>
                       <div style={{
                         fontFamily: "var(--font-display)",

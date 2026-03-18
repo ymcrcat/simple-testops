@@ -216,11 +216,9 @@ export default function Dashboard() {
         <div style={{
           maxWidth: 960,
           margin: "0 auto",
-          padding: "20px 32px",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          padding: "20px 16px",
         }}>
+          <div className="responsive-row">
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
               width: 36,
@@ -258,22 +256,23 @@ export default function Dashboard() {
               </div>
             </div>
           </div>
+          </div>
         </div>
       </header>
 
       {/* Main */}
-      <main style={{ maxWidth: 960, margin: "0 auto", padding: "32px 32px 64px" }}>
+      <main style={{ maxWidth: 960, margin: "0 auto", padding: "24px 16px 64px" }}>
         {/* Create project */}
         <div className="animate-in" style={{ marginBottom: 40 }}>
           <div className="section-label">New Project</div>
-          <div style={{ display: "flex", gap: 10 }}>
+          <div className="responsive-input-row">
             <input
               className="input"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter project name..."
               onKeyDown={(e) => e.key === "Enter" && createProject()}
-              style={{ maxWidth: 400 }}
+              style={{ maxWidth: 400, width: "100%" }}
             />
             <button className="btn btn-primary" onClick={createProject}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
@@ -315,7 +314,7 @@ export default function Dashboard() {
                     padding: "18px 22px",
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div className="responsive-row">
                     <div>
                       <div style={{
                         fontFamily: "var(--font-display)",
@@ -325,7 +324,7 @@ export default function Dashboard() {
                       }}>
                         {p.name}
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                      <div className="wrap-row">
                         <span className="mono" style={{ color: "var(--text-muted)", fontSize: 12 }}>
                           /{p.slug}
                         </span>
@@ -341,7 +340,7 @@ export default function Dashboard() {
                         </span>
                       </div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 14, marginRight: 32 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 14, marginRight: 32, minWidth: 0 }}>
                       {p.last_total != null && (
                         <RunSummary
                           total={p.last_total}

@@ -207,7 +207,7 @@ export default function ProjectOverview() {
     <div>
       {/* Header */}
       <div style={{ marginBottom: 32 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div className="responsive-row" style={{ alignItems: "flex-start" }}>
           <h1 style={{
             fontFamily: "var(--font-display)",
             fontSize: 28,
@@ -223,12 +223,7 @@ export default function ProjectOverview() {
       </div>
 
       {/* Stats row */}
-      <div style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(4, 1fr)",
-        gap: 12,
-        marginBottom: 32,
-      }}>
+      <div className="stats-grid" style={{ marginBottom: 32 }}>
         {[
           { label: "Total Runs", value: runs.length, color: "var(--color-accent)" },
           { label: "Total Tests", value: totalTests, color: "var(--text-primary)" },
@@ -258,7 +253,7 @@ export default function ProjectOverview() {
             display: "block",
             padding: "20px 24px",
           }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div className="responsive-row">
               <div>
                 <div style={{
                   fontFamily: "var(--font-display)",
@@ -287,7 +282,8 @@ export default function ProjectOverview() {
       {runs.length > 1 && (
         <div className="animate-in stagger-4">
           <div className="section-label">Recent Runs</div>
-          <div className="card-static" style={{ overflow: "hidden" }}>
+          <div className="card-static desktop-table" style={{ overflow: "hidden" }}>
+            <div className="table-scroll">
             <table className="data-table">
               <thead>
                 <tr>
@@ -314,6 +310,22 @@ export default function ProjectOverview() {
                 ))}
               </tbody>
             </table>
+            </div>
+          </div>
+          <div className="mobile-list">
+            {runs.slice(0, 8).map((r) => (
+              <Link key={r.id} href={`/projects/${params.id}/runs/${r.id}`} className="card-static" style={{ padding: "14px 16px" }}>
+                <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, marginBottom: 4 }}>
+                  {r.name || `Run #${r.id}`}
+                </div>
+                <div className="mono" style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 8 }}>{r.started_at}</div>
+                <div className="wrap-row" style={{ fontSize: 12 }}>
+                  <span className="mono" style={{ color: "var(--color-passed)" }}>{r.passed} passed</span>
+                  <span className="mono" style={{ color: r.failed > 0 ? "var(--color-failed)" : "var(--text-muted)" }}>{r.failed} failed</span>
+                  <span className="mono" style={{ color: "var(--text-secondary)" }}>{r.total} total</span>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       )}

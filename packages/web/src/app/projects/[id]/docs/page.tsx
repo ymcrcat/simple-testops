@@ -50,8 +50,9 @@ function Endpoint({ method, path, description }: { method: string; path: string;
   return (
     <div style={{
       display: "flex",
-      alignItems: "center",
+      alignItems: "flex-start",
       gap: 10,
+      flexWrap: "wrap",
       padding: "8px 0",
       borderBottom: "1px solid var(--border)",
     }}>
@@ -70,8 +71,8 @@ function Endpoint({ method, path, description }: { method: string; path: string;
       }}>
         {method}
       </span>
-      <span className="mono" style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 500 }}>{path}</span>
-      <span style={{ fontSize: 12, color: "var(--text-muted)", marginLeft: "auto" }}>{description}</span>
+      <span className="mono" style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 500, overflowWrap: "anywhere" }}>{path}</span>
+      <span style={{ fontSize: 12, color: "var(--text-muted)", marginLeft: "auto", minWidth: 180 }}>{description}</span>
     </div>
   );
 }
@@ -104,6 +105,7 @@ export default function DocsPage() {
           display: "flex",
           alignItems: "center",
           gap: 8,
+          flexWrap: "wrap",
           padding: "12px 16px",
           background: "var(--bg-elevated)",
           borderRadius: "var(--radius-sm)",

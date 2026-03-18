@@ -41,7 +41,7 @@ export default function CasesPage() {
 
   return (
     <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+      <div className="responsive-row" style={{ marginBottom: 24 }}>
         <h1 style={{
           fontFamily: "var(--font-display)",
           fontSize: 24,
@@ -50,8 +50,8 @@ export default function CasesPage() {
         }}>
           Test Cases
         </h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        <div className="wrap-row" style={{ justifyContent: "space-between" }}>
+          <div className="wrap-row" style={{ gap: 6 }}>
             <span className="mono" style={{ color: "var(--text-muted)", fontSize: 12 }}>Priority:</span>
             {["all", ...PRIORITY_OPTIONS, "none"].map((opt) => {
               const active = priorityFilter === opt;
@@ -68,7 +68,7 @@ export default function CasesPage() {
                     border: "1px solid",
                     borderColor: active
                       ? colors ? colors.text : "var(--border-active)"
-                      : "var(--border-default)",
+                      : "var(--border)",
                     background: active
                       ? colors ? colors.bg : "var(--bg-elevated)"
                       : "transparent",
@@ -103,7 +103,9 @@ export default function CasesPage() {
           <p>{cases.length === 0 ? "No test cases defined. Create features and stories first, then add test cases." : "No test cases match the selected priority filter."}</p>
         </div>
       ) : (
-        <div className="card-static animate-in" style={{ overflow: "hidden" }}>
+        <>
+        <div className="card-static animate-in desktop-table" style={{ overflow: "hidden" }}>
+          <div className="table-scroll">
           <table className="data-table">
             <thead>
               <tr>
@@ -148,7 +150,48 @@ export default function CasesPage() {
               })}
             </tbody>
           </table>
+          </div>
         </div>
+        <div className="mobile-list animate-in">
+          {filtered.map((tc) => {
+            const p = tc.story_priority;
+            const colors = p ? priorityColors[p] : null;
+            return (
+              <div key={tc.id} className="card-static" style={{ padding: "14px 16px" }}>
+                <div style={{ fontWeight: 600, marginBottom: 4 }}>{tc.name}</div>
+                {tc.class_name && (
+                  <div className="mono" style={{ color: "var(--text-muted)", fontSize: 12, marginBottom: 8 }}>{tc.class_name}</div>
+                )}
+                <div className="wrap-row" style={{ fontSize: 12, color: "var(--text-secondary)", marginBottom: 10 }}>
+                  <span>{tc.feature_name}</span>
+                  <span style={{ color: "var(--text-muted)" }}>/</span>
+                  <span>{tc.story_name}</span>
+                </div>
+                <div className="wrap-row" style={{ justifyContent: "space-between" }}>
+                  <div>
+                    {p && colors ? (
+                      <span style={{
+                        padding: "2px 8px",
+                        fontSize: 11,
+                        fontWeight: 700,
+                        borderRadius: 6,
+                        background: colors.bg,
+                        color: colors.text,
+                        letterSpacing: "0.05em",
+                      }}>
+                        {p}
+                      </span>
+                    ) : (
+                      <span style={{ color: "var(--text-muted)", fontSize: 12 }}>No priority</span>
+                    )}
+                  </div>
+                  <StatusBadge status={tc.status} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        </>
       )}
     </div>
   );
