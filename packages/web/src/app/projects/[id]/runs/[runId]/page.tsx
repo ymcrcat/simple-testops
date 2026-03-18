@@ -424,6 +424,50 @@ export default function RunDetailPage() {
     }, 200);
   };
 
+  const reloadCoverage = async () => {
+    const updated = await apiFetch<TestResult[]>(`/runs/${params.runId}/coverage`);
+    const rows = updated.map((r) => r.id == null
+      ? { ...r, id: -(r.test_case_id ?? 0), name: r.case_name ?? "", class_name: r.case_class_name ?? "", status: "not_run", duration_ms: 0, error_message: null }
+      : r
+    );
+    setResults(rows);
+    const updatedRun = await apiFetch<Run>(`/runs/${params.runId}`);
+    setRun(updatedRun);
+    return rows;
+  };
+
+  const handleSetStatus = async (status: string) => {
+    if (!selectedResult) return;
+
+    if (selectedResult.status === "not_run") {
+      // Create a new manual result
+      await apiFetch(`/runs/${params.runId}/results`, {
+        method: "POST",
+        body: JSON.stringify({ test_case_id: selectedResult.test_case_id, status }),
+      });
+    } else {
+      // Update existing result
+      await apiFetch(`/results/${selectedResult.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status }),
+      });
+    }
+
+    const rows = await reloadCoverage();
+    // Re-select the updated result
+    const updatedResult = selectedResult.status === "not_run"
+      ? rows.find((r) => r.test_case_id === selectedResult.test_case_id && r.status !== "not_run")
+      : rows.find((r) => r.id === selectedResult.id);
+    if (updatedResult) {
+      setSelectedResult(updatedResult);
+      if (updatedResult.test_case_id) {
+        const tc = await apiFetch<TestCaseDetail>(`/testcases/${updatedResult.test_case_id}`);
+        setCaseDetail(tc);
+        setCaseDescription(tc.description || "");
+      }
+    }
+  };
+
   if (!run) return <div className="page-loader">Loading run data...</div>;
 
   const filtered = filter ? results.filter((r) => r.status === filter) : results;
@@ -539,9 +583,9 @@ export default function RunDetailPage() {
                               key={r.id}
                               className="status-row"
                               data-status={r.status}
-                              onClick={() => r.status !== "not_run" ? handleSelectResult(r) : undefined}
+                              onClick={() => handleSelectResult(r)}
                               style={{
-                                cursor: r.status === "not_run" ? "default" : "pointer",
+                                cursor: "pointer",
                                 background: selectedResult?.id === r.id ? "var(--bg-elevated)" : undefined,
                                 opacity: r.status === "not_run" ? 0.45 : undefined,
                               }}
@@ -711,8 +755,32 @@ export default function RunDetailPage() {
               )}
             </div>
 
-            {/* Editable Key */}
+            {/* Manual status buttons */}
             <div style={{ marginBottom: 16 }}>
+              <div className="section-label">Set Status</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {(["passed", "failed", "skipped"] as const).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => handleSetStatus(s)}
+                    className="btn btn-ghost"
+                    style={{
+                      fontSize: 12,
+                      padding: "5px 12px",
+                      border: selectedResult.status === s ? `1.5px solid var(--color-${s === "failed" ? "failed" : s})` : "1px solid var(--border)",
+                      background: selectedResult.status === s ? `var(--color-${s === "failed" ? "failed" : s}-glow)` : undefined,
+                      color: selectedResult.status === s ? `var(--color-${s === "failed" ? "failed" : s})` : "var(--text-secondary)",
+                      fontWeight: selectedResult.status === s ? 600 : 400,
+                    }}
+                  >
+                    {s === "passed" ? "✓ Pass" : s === "failed" ? "✗ Fail" : "⊘ Skip"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Editable Key (only for real results, not synthesized not_run) */}
+            {selectedResult.id > 0 && <div style={{ marginBottom: 16 }}>
               <div style={{
                 display: "flex",
                 alignItems: "center",
@@ -741,7 +809,7 @@ export default function RunDetailPage() {
                   padding: "6px 10px",
                 }}
               />
-            </div>
+            </div>}
 
             {/* Error message */}
             {selectedResult.error_message && (

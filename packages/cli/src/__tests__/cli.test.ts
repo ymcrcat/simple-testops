@@ -4,12 +4,10 @@ import path from "path";
 
 const CLI_PATH = path.resolve(__dirname, "../index.ts");
 
-// tsx is hoisted to the workspace root node_modules
-const TSX = path.resolve(__dirname, "../../../../node_modules/.bin/tsx");
-
 function runCli(args: string[]): { stdout: string; stderr: string; exitCode: number } {
   try {
-    const stdout = execFileSync(TSX, [CLI_PATH, ...args], {
+    // Use node --import tsx instead of tsx binary to avoid IPC pipe creation
+    const stdout = execFileSync(process.execPath, ["--import", "tsx", CLI_PATH, ...args], {
       encoding: "utf-8",
       timeout: 10000,
       env: { ...process.env, NODE_NO_WARNINGS: "1" },
