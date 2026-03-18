@@ -592,8 +592,8 @@ export default function RunDetailPage() {
                             >
                               <td style={{ padding: 0, width: 4 }}></td>
                               <td style={{ fontWeight: 500, fontSize: 13 }}>{r.case_name || r.name}</td>
-                              <td><StatusBadge status={r.status} /></td>
-                              <td className="mono" style={{ color: "var(--text-secondary)", fontSize: 12 }}>
+                              <td style={{ width: 100, textAlign: "center" }}><StatusBadge status={r.status} /></td>
+                              <td className="mono" style={{ width: 80, textAlign: "right", color: "var(--text-secondary)", fontSize: 12 }}>
                                 {r.status === "not_run" ? <span style={{ color: "var(--text-muted)" }}>&mdash;</span> : <>{r.duration_ms}<span style={{ color: "var(--text-muted)" }}>ms</span></>}
                               </td>
                             </tr>
