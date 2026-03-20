@@ -587,18 +587,24 @@ export default function RunDetailPage() {
                 <div className="section-label">
                   {selectedResult.status === "skipped" ? "Skip Reason" : "Error"}
                 </div>
-                <div className={selectedResult.status === "skipped" ? "" : "error-block"} style={selectedResult.status === "skipped" ? {
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 12,
-                  color: "var(--text-secondary)",
-                  background: "var(--bg-elevated)",
-                  borderRadius: 6,
-                  padding: "10px 12px",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                } : undefined}>
-                  <pre>{selectedResult.error_message}</pre>
-                </div>
+                {selectedResult.status === "skipped" ? (
+                  <div style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 12,
+                    color: "var(--text-secondary)",
+                    background: "var(--bg-elevated)",
+                    borderRadius: 6,
+                    padding: "10px 12px",
+                    whiteSpace: "pre-wrap",
+                    wordBreak: "break-word",
+                  }}>
+                    {selectedResult.error_message}
+                  </div>
+                ) : (
+                  <div className="error-block">
+                    <pre>{selectedResult.error_message}</pre>
+                  </div>
+                )}
               </div>
             )}
 
