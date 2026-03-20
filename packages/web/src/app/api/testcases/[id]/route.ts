@@ -10,6 +10,9 @@ export const GET = apiHandler((_req: NextRequest, { params }: { params: { id: st
 
 export const PUT = apiHandler(async (req: NextRequest, { params }: { params: { id: string } }) => {
   const body = await req.json();
+  if (body.story_id !== undefined) {
+    db().prepare("UPDATE test_cases SET story_id = ? WHERE id = ?").run(body.story_id, params.id);
+  }
   if (body.sort_order !== undefined) {
     db().prepare("UPDATE test_cases SET sort_order = ? WHERE id = ?").run(body.sort_order, params.id);
   }
