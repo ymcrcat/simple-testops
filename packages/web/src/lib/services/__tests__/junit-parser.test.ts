@@ -22,6 +22,9 @@ describe("parseJUnitXML", () => {
     expect(result.passed).toBe(2);
     expect(result.failed).toBe(1);
     expect(result.skipped).toBe(1);
+
+    const skippedTest = result.tests.find((t) => t.status === "skipped");
+    expect(skippedTest?.errorMessage).toBe("not implemented");
   });
 
   it("parses testsuites wrapper (multiple suites)", () => {

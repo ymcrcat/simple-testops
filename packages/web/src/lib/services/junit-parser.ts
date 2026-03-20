@@ -64,6 +64,12 @@ export function parseJUnitXML(xml: string): JUnitResult {
             : tc.error["@_message"] || tc.error["#text"] || "Test error";
       } else if (tc.skipped !== undefined) {
         status = "skipped";
+        if (tc.skipped && typeof tc.skipped !== "boolean") {
+          errorMessage =
+            typeof tc.skipped === "string"
+              ? tc.skipped
+              : tc.skipped["@_message"] || tc.skipped["#text"] || undefined;
+        }
       }
 
       // Extract feature/story/test_case_name from <properties>
