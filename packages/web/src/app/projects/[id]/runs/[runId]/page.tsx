@@ -259,7 +259,7 @@ export default function RunDetailPage() {
 
   const filtered = filter ? results.filter((r) => r.status === filter) : results;
   const groups = groupByFeatureStory(filtered);
-  const errors = filtered.filter((r) => r.error_message);
+  const errors = filtered.filter((r) => r.error_message && r.status !== "skipped");
 
   const notRunCount = results.filter((r) => r.status === "not_run").length;
 
