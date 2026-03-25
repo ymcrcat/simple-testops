@@ -91,7 +91,7 @@ GET /api/testcases/:id
 
 ### Update test case
 PUT /api/testcases/:id
-Body: { "name": "New Name", "class_name": "cls", "key": "test_key", "description": "Test desc", "status": "active|deprecated", "sort_order": 0 }
+Body: { "name": "New Name", "class_name": "cls", "key": "test_key", "description": "Test desc", "status": "active|deprecated", "story_id": 1, "sort_order": 0 }
 
 ### Delete test case
 DELETE /api/testcases/:id
@@ -129,10 +129,21 @@ Note: project_id can be numeric ID or slug. Parses XML and auto-matches results 
 
 ## Results
 
+### Override result status
+PUT /api/results/:id
+Body: { "status": "passed" | "failed" | "skipped" }
+Updates the status of a test result and recalculates run totals.
+
 ### Re-match a result to a test case
 PUT /api/results/:id/match
 Body: { "key": "test_case_key" }
 Sets or clears the test_case_id on a test result by matching the key to an existing test case in the same project. Send empty key to unlink.
+
+## Health
+
+### Health check
+GET /api/health
+Returns: { "status": "ok" }
 
 ## Example: Create a full hierarchy
 

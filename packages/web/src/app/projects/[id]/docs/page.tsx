@@ -200,7 +200,7 @@ testops upload --project ${projectId} --file results.xml --url https://testops.e
           <Endpoint method="GET" path="/api/testcases?story_id=:id" description="List test cases for a story" />
           <Endpoint method="POST" path="/api/testcases" description="Create a test case" />
           <Endpoint method="GET" path="/api/testcases/:id" description="Get test case" />
-          <Endpoint method="PUT" path="/api/testcases/:id" description="Update test case" />
+          <Endpoint method="PUT" path="/api/testcases/:id" description="Update test case (name, class_name, key, description, status, story_id, sort_order)" />
           <Endpoint method="DELETE" path="/api/testcases/:id" description="Delete test case" />
           <Endpoint method="GET" path="/api/testcases/:id/history" description="Last 50 results with run info" />
         </div>
@@ -214,6 +214,17 @@ testops upload --project ${projectId} --file results.xml --url https://testops.e
           <Endpoint method="GET" path="/api/runs/:id/results" description="Get run results (filter: ?status=failed)" />
           <Endpoint method="GET" path="/api/runs/:id/coverage" description="Full test spec vs results" />
           <Endpoint method="POST" path="/api/runs/upload" description="Upload JUnit XML results" />
+        </div>
+
+        <h3 style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600, marginBottom: 8, marginTop: 20, color: "var(--text-primary)" }}>Results</h3>
+        <div style={{ marginBottom: 16 }}>
+          <Endpoint method="PUT" path="/api/results/:id" description="Override result status (passed, failed, skipped)" />
+          <Endpoint method="PUT" path="/api/results/:id/match" description="Re-match result to a test case by key" />
+        </div>
+
+        <h3 style={{ fontFamily: "var(--font-display)", fontSize: 14, fontWeight: 600, marginBottom: 8, marginTop: 20, color: "var(--text-primary)" }}>Health</h3>
+        <div style={{ marginBottom: 16 }}>
+          <Endpoint method="GET" path="/api/health" description="Health check (returns {status: &quot;ok&quot;})" />
         </div>
       </Section>
 
