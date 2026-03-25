@@ -327,7 +327,7 @@ export default function RunDetailPage() {
         {groups.map((feat) => {
           const allFeatResults = feat.stories.flatMap((s) => s.results);
           return (
-            <details key={feat.name} open>
+            <details key={feat.name}>
               <summary style={{
                 cursor: "pointer",
                 fontFamily: "var(--font-display)",
