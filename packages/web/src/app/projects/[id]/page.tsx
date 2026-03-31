@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import RunSummary from "@/components/RunSummary";
 import StatusBadge from "@/components/StatusBadge";
 import DropdownMenu from "@/components/DropdownMenu";
+import RunHistoryChart from "@/components/RunHistoryChart";
 import type { Project, Run } from "@/lib/types";
 
 export default function ProjectOverview() {
@@ -82,9 +83,16 @@ export default function ProjectOverview() {
         ))}
       </div>
 
+      {/* Run history chart */}
+      {runs.length > 1 && (
+        <div className="animate-in stagger-3" style={{ marginBottom: 32 }}>
+          <RunHistoryChart runs={runs} />
+        </div>
+      )}
+
       {/* Latest run */}
       {latest ? (
-        <div className="animate-in stagger-3" style={{ marginBottom: 32 }}>
+        <div className="animate-in stagger-4" style={{ marginBottom: 32 }}>
           <div className="section-label">Latest Run</div>
           <Link href={`/projects/${params.id}/runs/${latest.id}`} className="card" style={{
             display: "block",
@@ -109,7 +117,7 @@ export default function ProjectOverview() {
           </Link>
         </div>
       ) : (
-        <div className="empty-state animate-in stagger-3">
+        <div className="empty-state animate-in stagger-4">
           <div className="icon">&#9655;</div>
           <p>No test runs yet. Upload results via the CLI to see them here.</p>
         </div>
@@ -117,7 +125,7 @@ export default function ProjectOverview() {
 
       {/* Recent runs */}
       {runs.length > 1 && (
-        <div className="animate-in stagger-4">
+        <div className="animate-in stagger-5">
           <div className="section-label">Recent Runs</div>
           <div className="card-static desktop-table" style={{ overflow: "hidden" }}>
             <div className="table-scroll">
