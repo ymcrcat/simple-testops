@@ -4,6 +4,7 @@ import {
   BarChart,
   Bar,
   XAxis,
+  YAxis,
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
@@ -73,6 +74,7 @@ export default function RunHistoryChart({ runs, maxBars = 25 }: RunHistoryChartP
       <div className="card-static" style={{ padding: "20px 16px 12px 8px" }}>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={display} barCategoryGap="16%">
+            <YAxis hide domain={[0, "auto"]} />
             <XAxis
               dataKey="label"
               tick={{ fill: "#505872", fontFamily: "var(--font-mono)", fontSize: 10 }}
