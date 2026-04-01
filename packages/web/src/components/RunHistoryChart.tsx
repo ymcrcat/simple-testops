@@ -72,7 +72,7 @@ export default function RunHistoryChart({ runs, maxBars = 25 }: RunHistoryChartP
     <div>
       <div className="section-label">Run History</div>
       <div className="card-static" style={{ padding: "20px 16px 12px 8px" }}>
-        <ResponsiveContainer width="100%" height={180}>
+        <ResponsiveContainer width="100%" height={280}>
           <BarChart data={display} barCategoryGap="16%">
             <YAxis hide domain={[0, "auto"]} />
             <XAxis
