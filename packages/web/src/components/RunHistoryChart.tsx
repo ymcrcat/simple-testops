@@ -88,7 +88,7 @@ export default function RunHistoryChart({ runs, maxBars = 25 }: RunHistoryChartP
             />
             <Bar dataKey="passed" stackId="a" fill="#34d399" />
             <Bar dataKey="failed" stackId="a" fill="#f87171" />
-            <Bar dataKey="skipped" stackId="a" fill="#fbbf24" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="skipped" stackId="a" fill="#fbbf24" />
           </BarChart>
         </ResponsiveContainer>
       </div>
