@@ -16,6 +16,7 @@ interface RunHistoryChartProps {
 }
 
 interface ChartDatum {
+  key: string;
   label: string;
   passed: number;
   failed: number;
@@ -59,7 +60,8 @@ export default function RunHistoryChart({ runs, maxBars = 25 }: RunHistoryChartP
   const display = runs
     .slice(0, maxBars)
     .reverse()
-    .map((r): ChartDatum => ({
+    .map((r, i): ChartDatum => ({
+      key: String(i),
       label: formatDate(r.started_at),
       passed: r.passed,
       failed: r.failed,
@@ -76,11 +78,15 @@ export default function RunHistoryChart({ runs, maxBars = 25 }: RunHistoryChartP
           <BarChart data={display} barCategoryGap="16%">
             <YAxis hide domain={[0, "auto"]} />
             <XAxis
-              dataKey="label"
+              dataKey="key"
               tick={{ fill: "#505872", fontFamily: "var(--font-mono)", fontSize: 10 }}
               axisLine={{ stroke: "#222840" }}
               tickLine={false}
               interval="preserveStartEnd"
+              tickFormatter={(key) => {
+                const d = display[Number(key)];
+                return d ? d.label : "";
+              }}
             />
             <Tooltip
               content={<CustomTooltip />}
