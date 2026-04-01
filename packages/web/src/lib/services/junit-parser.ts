@@ -102,7 +102,7 @@ export function parseJUnitXML(xml: string): JUnitResult {
 
   const total = tests.length;
   const passed = tests.filter((t) => t.status === "passed").length;
-  const failed = tests.filter((t) => t.status === "failed").length;
+  const failed = tests.filter((t) => t.status === "failed" || t.status === "broken").length;
   const skipped = tests.filter((t) => t.status === "skipped").length;
 
   return { suiteName, tests, total, passed, failed, skipped };

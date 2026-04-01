@@ -94,5 +94,17 @@ export function ensureMigrated() {
     db.exec("UPDATE test_cases SET key = name WHERE key IS NULL");
   }
 
+  // Migration: recalc run totals (broken status was not counted as failed)
+  db.exec(`
+    UPDATE test_runs SET
+      passed = (SELECT COUNT(*) FROM test_results WHERE run_id = test_runs.id AND status = 'passed'),
+      failed = (SELECT COUNT(*) FROM test_results WHERE run_id = test_runs.id AND (status = 'failed' OR status = 'broken')),
+      skipped = (SELECT COUNT(*) FROM test_results WHERE run_id = test_runs.id AND status = 'skipped'),
+      total = (SELECT COUNT(*) FROM test_results WHERE run_id = test_runs.id)
+    WHERE EXISTS (
+      SELECT 1 FROM test_results WHERE run_id = test_runs.id AND status = 'broken'
+    )
+  `);
+
   migrated = true;
 }
