@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import type { Run } from "@/lib/types";
 
 interface RunHistoryChartProps {
@@ -27,6 +27,7 @@ export default function RunHistoryChart({ runs, maxBars = 25 }: RunHistoryChartP
   const [hovered, setHovered] = useState<number | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   const bars: BarData[] = runs
     .slice(0, maxBars)
@@ -42,13 +43,22 @@ export default function RunHistoryChart({ runs, maxBars = 25 }: RunHistoryChartP
     }));
 
   const maxTotal = Math.max(...bars.map((b) => b.total), 1);
-  const chartHeight = 260;
+  const chartHeight = 180;
   const barGap = 3;
 
   const handleMouseMove = (e: React.MouseEvent, i: number) => {
     if (!containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
-    setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    const tt = tooltipRef.current;
+    const ttW = tt?.offsetWidth || 160;
+    const ttH = tt?.offsetHeight || 120;
+    let x = e.clientX - rect.left + 12;
+    let y = e.clientY - rect.top - 10;
+    // Keep tooltip within container bounds
+    if (x + ttW > rect.width) x = e.clientX - rect.left - ttW - 12;
+    if (y + ttH > rect.height) y = rect.height - ttH;
+    if (y < 0) y = 0;
+    setTooltipPos({ x, y });
     setHovered(i);
   };
 
@@ -57,7 +67,7 @@ export default function RunHistoryChart({ runs, maxBars = 25 }: RunHistoryChartP
   return (
     <div>
       <div className="section-label">Run History</div>
-      <div className="card-static" style={{ padding: "20px 16px 12px 16px", position: "relative" }} ref={containerRef}>
+      <div className="card-static" style={{ padding: "20px 16px 12px 16px", position: "relative", overflow: "hidden" }} ref={containerRef}>
         <div style={{ display: "flex", alignItems: "flex-end", gap: barGap, height: chartHeight }}>
           {bars.map((bar, i) => {
             const barHeight = (bar.total / maxTotal) * chartHeight;
@@ -115,10 +125,10 @@ export default function RunHistoryChart({ runs, maxBars = 25 }: RunHistoryChartP
 
         {/* Tooltip */}
         {hoveredBar && hovered !== null && (
-          <div style={{
+          <div ref={tooltipRef} style={{
             position: "absolute",
-            left: tooltipPos.x + 12,
-            top: tooltipPos.y - 10,
+            left: tooltipPos.x,
+            top: tooltipPos.y,
             background: "var(--bg-elevated)",
             border: "1px solid var(--border-active)",
             borderRadius: "var(--radius-md)",
