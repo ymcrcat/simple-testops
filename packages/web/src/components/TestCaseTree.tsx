@@ -669,11 +669,11 @@ export default function TestCaseTree({ projectId, selectedCaseId, onSelectCase }
                           ) : (
                             <span onDoubleClick={(e) => { e.stopPropagation(); startEditing("story", s.id, s.name); }}>{s.name}</span>
                           )}
-                          <PriorityBadge story={s} onUpdate={(p) => updateStoryPriority(s.id, p)} />
-                          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", marginLeft: "auto", flexShrink: 0 }}>
-                            {storyCases.length}
-                          </span>
                         </button>
+                        <PriorityBadge story={s} onUpdate={(p) => updateStoryPriority(s.id, p)} />
+                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", flexShrink: 0 }}>
+                          {storyCases.length}
+                        </span>
                         <DeleteButton onClick={() => requestDelete("story", s.id, s.name)} size={12} />
                       </div>
 
