@@ -44,7 +44,7 @@ function GripIcon({ size = 14 }: { size?: number }) {
   );
 }
 
-function ConfirmModal({ title, message, onConfirm, onCancel }: {
+export function ConfirmModal({ title, message, onConfirm, onCancel }: {
   title: string;
   message: string;
   onConfirm: () => void;

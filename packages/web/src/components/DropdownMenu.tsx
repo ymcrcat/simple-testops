@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import { DotsVerticalIcon, PencilIcon, TrashIcon } from "./icons";
+import { ConfirmModal } from "./TestCaseTree";
 
 interface DropdownMenuProps {
   name: string;
@@ -23,6 +24,7 @@ export default function DropdownMenu({
   const [open, setOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState(name);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -61,6 +63,11 @@ export default function DropdownMenu({
   const handleDelete = () => {
     setOpen(false);
     onOpenChange?.(false);
+    setConfirmingDelete(true);
+  };
+
+  const confirmDelete = () => {
+    setConfirmingDelete(false);
     onDelete();
   };
 
@@ -138,6 +145,14 @@ export default function DropdownMenu({
             </>
           )}
         </div>
+      )}
+      {confirmingDelete && (
+        <ConfirmModal
+          title="Delete"
+          message={`This will permanently delete "${name}".`}
+          onConfirm={confirmDelete}
+          onCancel={() => setConfirmingDelete(false)}
+        />
       )}
     </div>
   );
