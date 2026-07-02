@@ -8,6 +8,7 @@ import RunSummary from "@/components/RunSummary";
 import StatusBadge from "@/components/StatusBadge";
 import DropdownMenu from "@/components/DropdownMenu";
 import RunHistoryChart from "@/components/RunHistoryChart";
+import LoadingSkeleton from "@/components/LoadingSkeleton";
 import type { Project, Run } from "@/lib/types";
 
 export default function ProjectOverview() {
@@ -34,7 +35,7 @@ export default function ProjectOverview() {
     router.push("/");
   };
 
-  if (!project) return <div className="page-loader">Loading...</div>;
+  if (!project) return <LoadingSkeleton count={4} height={90} />;
 
   const latest = runs[0];
   const totalTests = runs.reduce((sum, r) => sum + r.total, 0);

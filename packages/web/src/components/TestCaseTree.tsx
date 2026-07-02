@@ -224,6 +224,9 @@ function PriorityBadge({ story, onUpdate }: { story: Story; onUpdate: (priority:
     >
       <button
         onClick={(e) => { e.stopPropagation(); setOpen(!open); }}
+        aria-label={p ? `Priority: ${p}. Click to change.` : "Set priority"}
+        aria-haspopup="menu"
+        aria-expanded={open}
         style={{
           fontFamily: "var(--font-mono)",
           fontSize: 10,
@@ -597,7 +600,7 @@ export default function TestCaseTree({ projectId, selectedCaseId, onSelectCase }
                 <span onDoubleClick={(e) => { e.stopPropagation(); startEditing("feature", f.id, f.name); }}>{f.name}</span>
               )}
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", marginLeft: "auto", flexShrink: 0 }}>
-                {stories.filter((s) => s.feature_id === f.id).length} stories
+                {stories.filter((s) => s.feature_id === f.id).length} {stories.filter((s) => s.feature_id === f.id).length === 1 ? "story" : "stories"}
               </span>
             </button>
             <DeleteButton onClick={() => requestDelete("feature", f.id, f.name)} />

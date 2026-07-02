@@ -86,6 +86,9 @@ export default function DropdownMenu({
       <button
         onClick={handleToggle}
         className="btn-icon-ghost"
+        aria-label={`Actions for ${name}`}
+        aria-haspopup="menu"
+        aria-expanded={open}
       >
         <DotsVerticalIcon />
       </button>

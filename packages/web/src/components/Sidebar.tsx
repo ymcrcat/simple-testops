@@ -236,7 +236,7 @@ export default function Sidebar({ projectId, projectName }: SidebarProps) {
           overflow: "hidden",
           textOverflow: "ellipsis",
         }}>
-          {projectName || `#${projectId}`}
+          {projectName || <div className="skeleton" style={{ width: 100, height: 14 }} />}
         </div>
       </div>
 
@@ -370,7 +370,7 @@ export default function Sidebar({ projectId, projectName }: SidebarProps) {
             overflow: "hidden",
             textOverflow: "ellipsis",
           }}>
-            {projectName || `#${projectId}`}
+            {projectName || <div className="skeleton" style={{ width: 100, height: 14 }} />}
           </div>
         </div>
       </div>
