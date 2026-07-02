@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useRef } from "react";
 import { DotsVerticalIcon, PencilIcon, TrashIcon } from "./icons";
-import { ConfirmModal } from "./TestCaseTree";
+import { ConfirmModal } from "./ConfirmModal";
 
 interface DropdownMenuProps {
   name: string;
   onRename: (newName: string) => void;
-  onDelete: () => void;
+  onDelete: () => void | Promise<void>;
   /** Called when dropdown open state changes */
   onOpenChange?: (open: boolean) => void;
   /** Whether toggle button should stop event propagation (e.g. when inside a link) */
@@ -25,6 +25,7 @@ export default function DropdownMenu({
   const [renaming, setRenaming] = useState(false);
   const [newName, setNewName] = useState(name);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const displayName = name || "this item";
   const menuRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -66,9 +67,9 @@ export default function DropdownMenu({
     setConfirmingDelete(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
+    await onDelete();
     setConfirmingDelete(false);
-    onDelete();
   };
 
   const handleToggle = (e: React.MouseEvent) => {
@@ -86,7 +87,7 @@ export default function DropdownMenu({
       <button
         onClick={handleToggle}
         className="btn-icon-ghost"
-        aria-label={`Actions for ${name}`}
+        aria-label={`Actions for ${displayName}`}
         aria-haspopup="menu"
         aria-expanded={open}
       >
@@ -152,7 +153,7 @@ export default function DropdownMenu({
       {confirmingDelete && (
         <ConfirmModal
           title="Delete"
-          message={`This will permanently delete "${name}".`}
+          message={`This will permanently delete "${displayName}".`}
           onConfirm={confirmDelete}
           onCancel={() => setConfirmingDelete(false)}
         />

@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { priorityColors } from "@/lib/constants";
+import { ConfirmModal } from "./ConfirmModal";
 
 interface Feature { id: number; name: string; sort_order: number; }
 interface Story { id: number; feature_id: number; name: string; sort_order: number; priority: string | null; }
@@ -41,99 +42,6 @@ function GripIcon({ size = 14 }: { size?: number }) {
       <circle cx="9" cy="19" r="1.5" />
       <circle cx="15" cy="19" r="1.5" />
     </svg>
-  );
-}
-
-export function ConfirmModal({ title, message, onConfirm, onCancel }: {
-  title: string;
-  message: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-}) {
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onCancel();
-      if (e.key === "Enter") onConfirm();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [onConfirm, onCancel]);
-
-  return (
-    <div
-      onClick={onCancel}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.6)",
-        backdropFilter: "blur(4px)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1000,
-        animation: "fadeIn 0.15s ease-out",
-      }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border-active)",
-          borderRadius: "var(--radius-lg)",
-          padding: "24px",
-          maxWidth: 380,
-          width: "90%",
-          boxShadow: "0 16px 64px rgba(0,0,0,0.5)",
-          animation: "fadeInScale 0.15s ease-out",
-        }}
-      >
-        <div style={{
-          fontFamily: "var(--font-display)",
-          fontWeight: 700,
-          fontSize: 16,
-          color: "var(--text-primary)",
-          marginBottom: 8,
-        }}>
-          {title}
-        </div>
-        <div style={{
-          fontSize: 13,
-          color: "var(--text-secondary)",
-          lineHeight: 1.6,
-          marginBottom: 20,
-        }}>
-          {message}
-        </div>
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-          <button
-            className="btn btn-ghost"
-            onClick={onCancel}
-            style={{ fontSize: 13, padding: "7px 16px" }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            style={{
-              fontFamily: "var(--font-body)",
-              fontSize: 13,
-              fontWeight: 600,
-              padding: "7px 16px",
-              borderRadius: "var(--radius-sm)",
-              border: "none",
-              cursor: "pointer",
-              background: "var(--color-failed)",
-              color: "#fff",
-              transition: "opacity 0.15s",
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.opacity = "0.85"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.opacity = "1"; }}
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -600,7 +508,7 @@ export default function TestCaseTree({ projectId, selectedCaseId, onSelectCase }
                 <span onDoubleClick={(e) => { e.stopPropagation(); startEditing("feature", f.id, f.name); }}>{f.name}</span>
               )}
               <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--text-muted)", marginLeft: "auto", flexShrink: 0 }}>
-                {stories.filter((s) => s.feature_id === f.id).length} {stories.filter((s) => s.feature_id === f.id).length === 1 ? "story" : "stories"}
+                {(() => { const n = stories.filter((s) => s.feature_id === f.id).length; return `${n} ${n === 1 ? "story" : "stories"}`; })()}
               </span>
             </button>
             <DeleteButton onClick={() => requestDelete("feature", f.id, f.name)} />
