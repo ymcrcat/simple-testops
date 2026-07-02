@@ -294,9 +294,10 @@ export default function Sidebar({ projectId, projectName }: SidebarProps) {
       }}>
         <button
           onClick={() => {
-            navigator.clipboard.writeText(getApiSkill(projectId));
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            navigator.clipboard.writeText(getApiSkill(projectId)).then(() => {
+              setCopied(true);
+              setTimeout(() => setCopied(false), 2000);
+            }).catch(() => {});
           }}
           style={{
             background: "none",
