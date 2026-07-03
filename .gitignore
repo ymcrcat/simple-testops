@@ -13,3 +13,4 @@ __pycache__/
 tests/.venv/
 tests/.pytest_cache/
 tests/results.xml
+.gstack/
